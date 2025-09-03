@@ -1,0 +1,80 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using AutoPartsStore.Core.Entities;
+
+namespace AutoPartsStore.Infrastructure.Configuration
+{
+    public class CarPartConfiguration : IEntityTypeConfiguration<CarPart>
+    {
+        public void Configure(EntityTypeBuilder<CarPart> builder)
+        {
+            builder.ToTable("CarParts");
+            builder.HasKey(p => p.Id);
+            builder.Property(p => p.Id).HasColumnName("PartID");
+
+            builder.Property(p => p.PartNumber)
+                .IsRequired()
+                .HasMaxLength(50)
+                .IsUnicode(false);
+
+            builder.Property(p => p.PartName)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            builder.Property(p => p.Description)
+                .HasMaxLength(1000);
+
+            builder.Property(p => p.CarBrand)
+                .HasMaxLength(100);
+
+            builder.Property(p => p.CarModel)
+                .HasMaxLength(100);
+
+            builder.Property(p => p.CarYear)
+                .HasMaxLength(100);
+
+            builder.Property(p => p.UnitPrice)
+                .IsRequired()
+                .HasColumnType("DECIMAL(10,2)");
+
+            builder.Property(p => p.DiscountPercent)
+                .HasDefaultValue(0)
+                .HasColumnType("DECIMAL(5,2)");
+
+            builder.Property(p => p.StockQuantity)
+                .IsRequired()
+                .HasDefaultValue(0);
+
+            builder.Property(p => p.IsActive)
+                .IsRequired()
+                .HasDefaultValue(true);
+
+            builder.Property(p => p.DateAdded)
+                .IsRequired();
+
+            builder.Property(p => p.LastUpdated)
+                .IsRequired();
+
+            builder.Property(p => p.ImageUrl)
+                .HasColumnName("ImageURL")
+                .HasMaxLength(255);
+
+            // Relationships
+            builder.HasOne(p => p.Category)
+                .WithMany(c => c.CarParts)
+                .HasForeignKey(p => p.CategoryId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.HasIndex(p => p.PartNumber).IsUnique();
+        }
+    }
+
+
+
+
+
+
+
+
+
+}
