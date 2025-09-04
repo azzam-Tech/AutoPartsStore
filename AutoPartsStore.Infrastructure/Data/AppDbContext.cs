@@ -1,11 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
-using AutoPartsStore.Core.Entities;
+﻿using AutoPartsStore.Core.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace AutoPartsStore.Infrastructure.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+        protected readonly IConfiguration Configuration;
+
+        public AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration configuration) : base(options)
+        {
+            Configuration = configuration;
+        }
+
+
 
         // DbSets
         public DbSet<User> Users { get; set; }
@@ -26,6 +34,15 @@ namespace AutoPartsStore.Infrastructure.Data
         public DbSet<InventoryLog> InventoryLogs { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
 
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                // للتطوير فقط - لا تستخدم في Production
+                optionsBuilder.UseSqlServer("Server=LAPTOP-2AR5OF7M;Database=AutoPartsStoreDb;Trusted_Connection=true;TrustServerCertificate=true;MultipleActiveResultSets=true;");
+            }
+        }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

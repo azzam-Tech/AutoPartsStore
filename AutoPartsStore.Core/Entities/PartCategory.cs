@@ -8,6 +8,9 @@
         public string? Description { get; private set; }
         public string? ImageUrl { get; private set; }
         public bool IsActive { get; private set; }
+        public bool IsDeleted { get; private set; }
+        public DateTime? DeletedAt { get; private set; }
+
 
         // Relationships
         public PartCategory? ParentCategory { get; private set; }
@@ -25,5 +28,16 @@
 
         public void Deactivate() => IsActive = false;
         public void Activate() => IsActive = true;
+        public void SoftDelete()
+        {
+            IsDeleted = true;
+            DeletedAt = DateTime.UtcNow;
+        }
+
+        public void Restore()
+        {
+            IsDeleted = false;
+            DeletedAt = null;
+        }
     }
 }

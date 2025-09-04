@@ -46,6 +46,10 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.Property(u => u.IsActive)
                 .IsRequired()
                 .HasDefaultValue(true);
+            builder.Property(e => e.DeletedAt);
+
+            builder.Property(e => e.IsDeleted)
+                   .HasDefaultValue(false);
 
             // Indexes
             builder.HasIndex(u => u.Username).IsUnique();

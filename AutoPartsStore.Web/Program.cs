@@ -11,21 +11,94 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
 builder.Services.AddControllers();
 
-// CORS («Œ Ì«—Ì° ·ﬂ‰ „Ê’Ï »Â)
-builder.Services.AddCors(options =>
+// Add Swagger services
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
-        policy.WithOrigins("https://yourfrontend.com")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        Title = "AutoPartsStore API",
+        Version = "v1",
+        Description = "API for AutoPartsStore Management System",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Name = "Development Team",
+            Email = "dev@autopartsstore.com"
+        }
+    });
+
+    // Add JWT Bearer token support in Swagger
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Enter your JWT token in the format: Bearer {your token}"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
     });
 });
 
-// Database
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+// Database with advanced configuration
+builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: configuration.GetValue<int>("DatabaseSettings:MaxRetryCount", 3),
+            maxRetryDelay: TimeSpan.FromSeconds(5),
+            errorNumbersToAdd: null);
+
+        sqlOptions.CommandTimeout(configuration.GetValue<int?>("DatabaseSettings:CommandTimeout") ?? 30);
+    });
+
+    // «· ›⁄Ì· ›ﬁÿ ›Ì Ê÷⁄ «· ÿÊÌ—
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableDetailedErrors(
+            configuration.GetValue<bool>("DatabaseSettings:EnableDetailedErrors", true));
+        options.EnableSensitiveDataLogging(
+            configuration.GetValue<bool>("DatabaseSettings:EnableSensitiveDataLogging", true));
+    }
+});
+
+//// Â–« «·ﬂÊœ „Œ’’ ·⁄„·Ì«  EF Core Tools („À· Migration)
+//if (args.Length > 0 && args[0].Contains("ef", StringComparison.OrdinalIgnoreCase))
+//{
+//    //  ﬂÊÌ‰ »”Ìÿ ·‹ DbContext ·⁄„·Ì«  «· ’„Ì„
+//    builder.Services.AddDbContext<AppDbContext>(options =>
+//        options.UseSqlServer("Server=LAPTOP-2AR5OF7M;Database=AutoPartsStoreDb;Trusted_Connection=true;TrustServerCertificate=true;MultipleActiveResultSets=true;"));
+//}
+
 
 // Repositories
 builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
@@ -73,6 +146,12 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoPartsStore API V1");
+        c.RoutePrefix = "swagger"; // Ã⁄· Swagger „ «Õ ⁄·Ï /swagger
+    });
 }
 else
 {
@@ -80,8 +159,8 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");        // ≈–« ﬂ‰   ” Œœ„ Ê«ÃÂ… √„«„Ì…
-app.UseAuthentication();            
+app.UseCors("AllowAll");
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

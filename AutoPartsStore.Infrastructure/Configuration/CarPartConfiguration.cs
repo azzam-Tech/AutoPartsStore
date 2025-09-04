@@ -58,6 +58,10 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.Property(p => p.ImageUrl)
                 .HasColumnName("ImageURL")
                 .HasMaxLength(255);
+            builder.Property(e => e.DeletedAt);
+
+            builder.Property(e => e.IsDeleted)
+                   .HasDefaultValue(false);
 
             // Relationships
             builder.HasOne(p => p.Category)

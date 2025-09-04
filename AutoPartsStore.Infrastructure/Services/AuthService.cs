@@ -38,11 +38,7 @@ namespace AutoPartsStore.Infrastructure.Services
         {
             var user = await _userService.GetUserByUsernameAsync(username);
             if (user == null)
-                return new AuthenticationResult
-                {
-                    Success = false,
-                    Message = "المستخدم غير موجود."
-                };
+                return AuthenticationResult.FailureResult("المستخدم غير موجود.");
 
             var roles = await GetUserRolesAsync(user.Id);
 
@@ -59,7 +55,6 @@ namespace AutoPartsStore.Infrastructure.Services
                 claims.Add(new Claim(ClaimTypes.Role, role.RoleName));
             }
 
-            // قراءة المفتاح والإصدار والجمهور من IConfiguration
             var key = _configuration["JWT_KEY"]
                      ?? throw new InvalidOperationException("JWT Key is not configured.");
 
@@ -80,12 +75,11 @@ namespace AutoPartsStore.Infrastructure.Services
 
             var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
 
-            return new AuthenticationResult
-            {
-                Success = true,
-                AccessToken = accessToken,
-                ExpiresAt = token.ValidTo
-            };
+            return AuthenticationResult.SuccessResult(
+                "تم إنشاء التوكن بنجاح",
+                accessToken,
+                token.ValidTo
+            );
         }
 
         public async Task<AuthenticationResult> RegisterAsync(
@@ -98,20 +92,12 @@ namespace AutoPartsStore.Infrastructure.Services
             // التحقق من التكرار
             if (await _userService.UsernameExistsAsync(username))
             {
-                return new AuthenticationResult
-                {
-                    Success = false,
-                    Message = "اسم المستخدم مسجل مسبقًا."
-                };
+                return AuthenticationResult.FailureResult("اسم المستخدم مسجل مسبقًا.");
             }
 
             if (await _userService.EmailExistsAsync(email))
             {
-                return new AuthenticationResult
-                {
-                    Success = false,
-                    Message = "البريد الإلكتروني مسجل مسبقًا."
-                };
+                return AuthenticationResult.FailureResult("البريد الإلكتروني مسجل مسبقًا.");
             }
 
             // تشفير كلمة المرور
@@ -134,11 +120,7 @@ namespace AutoPartsStore.Infrastructure.Services
                 await _context.SaveChangesAsync();
             }
 
-            return new AuthenticationResult
-            {
-                Success = true,
-                Message = "تم التسجيل بنجاح."
-            };
+            return AuthenticationResult.SuccessResult("تم التسجيل بنجاح.");
         }
 
         // ========================

@@ -9,6 +9,9 @@
         public string PhoneNumber { get; private set; }
         public string? Address { get; private set; }
         public bool IsActive { get; private set; }
+        public bool IsDeleted { get; private set; }
+        public DateTime? DeletedAt { get; private set; }
+
 
         // Relationship
         public List<PartSupply> Supplies { get; private set; } = new();
@@ -25,5 +28,16 @@
 
         public void Deactivate() => IsActive = false;
         public void Activate() => IsActive = true;
+        public void SoftDelete()
+        {
+            IsDeleted = true;
+            DeletedAt = DateTime.UtcNow;
+        }
+
+        public void Restore()
+        {
+            IsDeleted = false;
+            DeletedAt = null;
+        }
     }
 }

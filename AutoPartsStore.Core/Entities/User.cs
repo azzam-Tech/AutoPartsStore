@@ -19,6 +19,8 @@ namespace AutoPartsStore.Core.Entities
         public DateTime? LastLoginDate { get; private set; }
         public DateTime? LastLocationUpdate { get; private set; }
         public bool IsActive { get; private set; }
+        public bool IsDeleted { get; private set; }
+        public DateTime? DeletedAt { get; private set; }
 
         // Relationships
         public List<UserRoleAssignment> RoleAssignments { get; private set; } = new();
@@ -36,12 +38,26 @@ namespace AutoPartsStore.Core.Entities
             PhoneNumber = phoneNumber;
             RegistrationDate = DateTime.UtcNow;
             IsActive = true;
+            IsDeleted = false;
+            DeletedAt = null;
         }
 
         // Methods
         public void UpdateLastLogin() => LastLoginDate = DateTime.UtcNow;
         public void Deactivate() => IsActive = false;
         public void Activate() => IsActive = true;
+
+        public void SoftDelete()
+        {
+            IsDeleted = true;
+            DeletedAt = DateTime.UtcNow;
+        }
+
+        public void Restore()
+        {
+            IsDeleted = false;
+            DeletedAt = null;
+        }
 
     }
 }

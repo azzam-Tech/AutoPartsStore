@@ -25,6 +25,10 @@ namespace AutoPartsStore.Infrastructure.Configuration
 
             builder.Property(c => c.IsActive)
                 .HasDefaultValue(true);
+            builder.Property(e => e.DeletedAt);
+
+            builder.Property(e => e.IsDeleted)
+                   .HasDefaultValue(false);
 
             // Self-reference
             builder.HasOne(c => c.ParentCategory)

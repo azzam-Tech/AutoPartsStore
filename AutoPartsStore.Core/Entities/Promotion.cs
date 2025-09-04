@@ -11,6 +11,9 @@
         public DateTime EndDate { get; private set; }
         public bool IsActive { get; private set; }
         public decimal MinOrderAmount { get; private set; }
+        public bool IsDeleted { get; private set; }
+        public DateTime? DeletedAt { get; private set; }
+
 
         // Relationship
         public List<ProductPromotion> ProductPromotions { get; private set; } = new();
@@ -43,5 +46,16 @@
         }
 
         public bool IsActiveNow() => IsActive && DateTime.UtcNow >= StartDate && DateTime.UtcNow <= EndDate;
+        public void SoftDelete()
+        {
+            IsDeleted = true;
+            DeletedAt = DateTime.UtcNow;
+        }
+
+        public void Restore()
+        {
+            IsDeleted = false;
+            DeletedAt = null;
+        }
     }
 }

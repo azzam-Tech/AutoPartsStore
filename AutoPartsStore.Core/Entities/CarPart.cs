@@ -17,6 +17,9 @@
         public DateTime DateAdded { get; private set; }
         public DateTime LastUpdated { get; private set; }
         public string? ImageUrl { get; private set; }
+        public bool IsDeleted { get; private set; }
+        public DateTime? DeletedAt { get; private set; }
+
 
         // Relationships
         public PartCategory Category { get; private set; }
@@ -47,6 +50,8 @@
             IsActive = true;
             DateAdded = DateTime.UtcNow;
             LastUpdated = DateTime.UtcNow;
+            IsDeleted = false;
+            DeletedAt = null;
         }
 
         public void UpdatePrice(decimal newPrice)
@@ -73,6 +78,17 @@
         public decimal GetFinalPrice()
         {
             return UnitPrice * (1 - DiscountPercent / 100);
+        }
+        public void SoftDelete()
+        {
+            IsDeleted = true;
+            DeletedAt = DateTime.UtcNow;
+        }
+
+        public void Restore()
+        {
+            IsDeleted = false;
+            DeletedAt = null;
         }
     }
 }

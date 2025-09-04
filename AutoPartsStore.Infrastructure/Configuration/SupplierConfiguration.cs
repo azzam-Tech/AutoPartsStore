@@ -34,6 +34,10 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.Property(s => s.IsActive)
                 .IsRequired()
                 .HasDefaultValue(true);
+            builder.Property(e => e.DeletedAt);
+
+            builder.Property(e => e.IsDeleted)
+                   .HasDefaultValue(false);
         }
     }
 
