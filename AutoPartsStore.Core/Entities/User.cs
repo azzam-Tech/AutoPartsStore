@@ -59,5 +59,7 @@ namespace AutoPartsStore.Core.Entities
             DeletedAt = null;
         }
 
+
+
     }
 }

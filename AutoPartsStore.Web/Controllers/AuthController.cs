@@ -41,11 +41,13 @@ public class AuthController : BaseController
         if (!tokenResult.Success)
             return BadRequest(tokenResult.Message);
 
+        // إرجاع كائن موحد يحتوي على كل شيء
         return Success(new
         {
-            AccessToken = tokenResult.AccessToken,
-            ExpiresAt = tokenResult.ExpiresAt
-        }, "تم تسجيل الدخول بنجاح");
+            accessToken = tokenResult.AccessToken, 
+            expiresAt = tokenResult.ExpiresAt,     
+            userInfo = tokenResult.UserInfo        
+        }, tokenResult.Message);
     }
 }
 

@@ -22,6 +22,8 @@ namespace AutoPartsStore.Infrastructure.Services
         public async Task<User> GetUserByUsernameAsync(string username)
         {
             return await _context.Users
+                .Include(u => u.RoleAssignments)
+                .ThenInclude(ra => ra.Role)
                 .FirstOrDefaultAsync(u => u.Username == username);
         }
 

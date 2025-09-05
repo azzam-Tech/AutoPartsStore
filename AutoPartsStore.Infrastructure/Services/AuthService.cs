@@ -1,5 +1,6 @@
 ﻿using AutoPartsStore.Core.Entities;
 using AutoPartsStore.Core.Interfaces;
+using AutoPartsStore.Core.Models.AuthModels;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -41,6 +42,7 @@ namespace AutoPartsStore.Infrastructure.Services
                 return AuthenticationResult.FailureResult("المستخدم غير موجود.");
 
             var roles = await GetUserRolesAsync(user.Id);
+            var permissions = await GetUserPermissionsAsync(user.Id);
 
             var claims = new List<Claim>
             {
@@ -53,6 +55,11 @@ namespace AutoPartsStore.Infrastructure.Services
             foreach (var role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role.RoleName));
+            }
+
+            foreach (var permission in permissions)
+            {
+                claims.Add(new Claim("Permission", permission));
             }
 
             var key = _configuration["JWT_KEY"]
@@ -76,9 +83,24 @@ namespace AutoPartsStore.Infrastructure.Services
             var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
 
             return AuthenticationResult.SuccessResult(
-                "تم إنشاء التوكن بنجاح",
-                accessToken,
-                token.ValidTo
+                message: "تم تسجيل الدخول بنجاح",
+                accessToken: accessToken, 
+                expiresAt: token.ValidTo, 
+                userInfo: new UserInfoDto 
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    PhoneNumber = user.PhoneNumber,
+                    Roles = roles.Select(r => r.RoleName).ToList(),
+                    Permissions = permissions,
+                    RedirectTo = DetermineRedirectPath(roles),
+                    SessionInfo = new SessionInfoDto
+                    {
+                        LastLogin = user.LastLoginDate
+                    }
+                }
             );
         }
 
@@ -123,9 +145,59 @@ namespace AutoPartsStore.Infrastructure.Services
             return AuthenticationResult.SuccessResult("تم التسجيل بنجاح.");
         }
 
-        // ========================
-        // دوال مساعدة داخلية
-        // ========================
+        private string DetermineRedirectPath(List<UserRole> roles)
+        {
+            if (roles.Any(r => r.RoleName == "Admin"))
+                return "/admin/dashboard";
+
+            if (roles.Any(r => r.RoleName == "Supplier"))
+                return "/supplier/products";
+
+            if (roles.Any(r => r.RoleName == "Customer"))
+                return "/store";
+
+            return "/";
+        }
+
+        private async Task<List<string>> GetUserPermissionsAsync(int userId)
+        {
+            var roles = await GetUserRolesAsync(userId);
+            var permissions = new List<string>();
+
+            foreach (var role in roles)
+            {
+                switch (role.RoleName)
+                {
+                    case "Admin":
+                        permissions.AddRange(new[] {
+                            "users.manage", "products.manage", "orders.manage",
+                            "settings.manage", "reports.view"
+                        });
+                        break;
+                    case "Supplier":
+                        permissions.AddRange(new[] {
+                            "products.manage", "inventory.manage", "orders.view"
+                        });
+                        break;
+                    case "Customer":
+                        permissions.AddRange(new[] {
+                            "products.view", "orders.create", "reviews.create"
+                        });
+                        break;
+                }
+            }
+
+            return permissions.Distinct().ToList();
+        }
+
+        private async Task<List<UserRole>> GetUserRolesAsync(int userId)
+        {
+            return await _context.UserRoleAssignments
+                .Where(a => a.UserId == userId)
+                .Include(a => a.Role)
+                .Select(a => a.Role)
+                .ToListAsync();
+        }
 
         private string HashPassword(string password)
         {
@@ -143,14 +215,8 @@ namespace AutoPartsStore.Infrastructure.Services
                 return false;
             }
         }
-
-        private async Task<List<UserRole>> GetUserRolesAsync(int userId)
-        {
-            return await _context.UserRoleAssignments
-                .Where(a => a.UserId == userId)
-                .Include(a => a.Role)
-                .Select(a => a.Role)
-                .ToListAsync();
-        }
     }
+
+
+   
 }

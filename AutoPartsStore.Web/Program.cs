@@ -2,6 +2,7 @@ using AutoPartsStore.Core.Interfaces;
 using AutoPartsStore.Infrastructure.Data;
 using AutoPartsStore.Infrastructure.Repositories;
 using AutoPartsStore.Infrastructure.Services;
+using AutoPartsStore.Web.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -162,6 +163,8 @@ app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
+// ›Ì Program.cs° ﬁ»· app.MapControllers();
+app.UseAdminCheck();
 app.MapControllers();
 
 // Error Handling

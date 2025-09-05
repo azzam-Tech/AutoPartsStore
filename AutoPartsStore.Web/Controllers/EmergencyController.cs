@@ -1,77 +1,180 @@
 ﻿using AutoPartsStore.Core.Entities;
+using AutoPartsStore.Core.Models;
 using AutoPartsStore.Infrastructure.Data;
-using AutoPartsStore.Web.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
-[ApiController]
-[Route("api/emergency")]
-public class EmergencyController : BaseController
+namespace AutoPartsStore.Web.Controllers
 {
-    private readonly AppDbContext _context;
-    private readonly ILogger<EmergencyController> _logger;
-
-    public EmergencyController(AppDbContext context, ILogger<EmergencyController> logger)
+    [ApiController]
+    [Route("api/emergency")]
+    public class EmergencyController : BaseController
     {
-        _context = context;
-        _logger = logger;
-    }
+        private readonly AppDbContext _context;
+        private readonly ILogger<EmergencyController> _logger;
+        private readonly IConfiguration _configuration;
 
-    [HttpPost("create-admin")]
-    [AllowAnonymous] // يسمح بالوصول بدون authentication
-    public async Task<IActionResult> CreateEmergencyAdmin([FromBody] EmergencyAdminRequest request)
-    {
-        // تحقق من وجود مفتاح طوارئ سري (يمكن تخزينه في environment variables)
-        var emergencyKey = Environment.GetEnvironmentVariable("EMERGENCY_ADMIN_KEY");
-
-        if (emergencyKey == null || request.EmergencyKey != emergencyKey)
+        public EmergencyController(
+            AppDbContext context, 
+            ILogger<EmergencyController> logger, 
+            IConfiguration configuration)
         {
-            _logger.LogWarning("محاولة غير مصرحة لإنشاء مسؤول طوارئ");
-            return Unauthorized("غير مصرح");
+            _context = context;
+            _logger = logger;
+            _configuration = configuration;
         }
 
-        // تحقق إذا يوجد أي مسؤولين بالفعل
-        var existingAdmins = await _context.UserRoleAssignments
-            .Where(ura => ura.RoleId == 1) // Admin role
-            .AnyAsync();
-
-        if (existingAdmins)
+        [HttpPost("create-admin")]
+        [AllowAnonymous] // يسمح بالوصول بدون authentication
+        public async Task<IActionResult> CreateEmergencyAdmin([FromBody] EmergencyAdminRequest request)
         {
-            return BadRequest("يوجد مسؤولون بالفعل في النظام");
+            try
+            {
+                _logger.LogInformation("محاولة إنشاء مسؤول طوارئ من IP: {RemoteIpAddress}", 
+                    HttpContext.Connection.RemoteIpAddress);
+
+               // القراءة من Environment Variables أولاً، ثم من Configuration
+               var emergencyKey = Environment.GetEnvironmentVariable("EMERGENCY_ADMIN_KEY")
+                                 ?? _configuration["EmergencySettings:AdminKey"];
+
+                if (string.IsNullOrEmpty(emergencyKey))
+                {
+                    _logger.LogCritical("مفتاح الطوارئ غير مضبوط في النظام");
+                    return StatusCode(500, "نظام الطوارئ غير مهيء. يرجى الاتصال بالدعم.");
+                }
+
+                if (request.EmergencyKey != emergencyKey)
+                {
+                    _logger.LogWarning("مفتاح طوارئ غير صحيح من IP: {RemoteIpAddress}", 
+                        HttpContext.Connection.RemoteIpAddress);
+                    return Unauthorized("مفتاح طوارئ غير صحيح");
+                }
+
+                // التحقق من صحة البيانات
+                if (string.IsNullOrEmpty(request.Username) || 
+                    string.IsNullOrEmpty(request.Password) ||
+                    string.IsNullOrEmpty(request.Email))
+                {
+                    return BadRequest("يجب提供 اسم المستخدم, كلمة المرور, والبريد الإلكتروني");
+                }
+
+                if (request.Password.Length < 8)
+                {
+                    return BadRequest("كلمة المرور يجب أن تكون至少 8 أحرف");
+                }
+
+                // تحقق إذا يوجد أي مسؤولين بالفعل
+                var existingAdmins = await _context.UserRoleAssignments
+                    .Include(ura => ura.Role)
+                    .Where(ura => ura.Role.RoleName == "Admin")
+                    .AnyAsync();
+
+                if (existingAdmins)
+                {
+                    _logger.LogWarning("محاولة إنشاء مسؤول طوارئ مع وجود مسؤولين بالفعل");
+                    return BadRequest("يوجد مسؤولون بالفعل في النظام");
+                }
+
+                // التحقق من عدم وجود مستخدم بنفس البيانات
+                var existingUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Username == request.Username || u.Email == request.Email);
+
+                if (existingUser != null)
+                {
+                    _logger.LogWarning("محاولة إنشاء مسؤول ببيانات موجودة مسبقاً: {Username}", request.Username);
+                    return BadRequest("اسم المستخدم أو البريد الإلكتروني مسجل مسبقاً");
+                }
+
+                // إنشاء المسؤول الجديد
+                var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+                var adminUser = new User(
+                    request.Username,
+                    hashedPassword,
+                    request.Email,
+                    request.FullName ?? "مسؤول الطوارئ",
+                    request.PhoneNumber ?? "0000000000"
+                );
+
+                adminUser.Activate();
+                adminUser.Restore();
+
+                _context.Users.Add(adminUser);
+                await _context.SaveChangesAsync();
+
+                // البحث عن دور Admin أو إنشائه إذا لم exists
+                var adminRole = await _context.UserRoles
+                    .FirstOrDefaultAsync(r => r.RoleName == "Admin");
+
+                if (adminRole == null)
+                {
+                    adminRole = new UserRole("Admin", "مسؤول النظام");
+                    _context.UserRoles.Add(adminRole);
+                    await _context.SaveChangesAsync();
+                }
+
+                // منح دور Admin
+                var adminAssignment = new UserRoleAssignment(adminUser.Id, adminRole.Id);
+                _context.UserRoleAssignments.Add(adminAssignment);
+                await _context.SaveChangesAsync();
+
+                _logger.LogCritical("تم إنشاء مسؤول طوارئ بنجاح: {Username} ({Email})", 
+                    request.Username, request.Email);
+
+                return Success(new 
+                {
+                    Username = adminUser.Username,
+                    Email = adminUser.Email,
+                    UserId = adminUser.Id,
+                    CreatedAt = DateTime.UtcNow
+                }, "تم إنشاء المسؤول بنجاح");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "خطأ غير متوقع أثناء إنشاء مسؤول الطوارئ");
+                return StatusCode(500, "حدث خطأ داخلي أثناء إنشاء المسؤول");
+            }
         }
 
-        // إنشاء المسؤول الجديد
-        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        [HttpGet("system-status")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetSystemStatus()
+        {
+            try
+            {
+                var adminCount = await _context.UserRoleAssignments
+                    .Include(ura => ura.Role)
+                    .Where(ura => ura.Role.RoleName == "Admin")
+                    .CountAsync();
 
-        var adminUser = new User(
-            request.Username,
-            hashedPassword,
-            request.Email,
-            request.FullName,
-            request.PhoneNumber
-        );
+                var totalUsers = await _context.Users.CountAsync();
 
-        _context.Users.Add(adminUser);
-        await _context.SaveChangesAsync();
-
-        // منح دور Admin
-        var adminAssignment = new UserRoleAssignment(adminUser.Id, 1); // Admin role
-        _context.UserRoleAssignments.Add(adminAssignment);
-        await _context.SaveChangesAsync();
-
-        _logger.LogCritical($"تم إنشاء مسؤول طوارئ: {request.Username}");
-
-        return Success("تم إنشاء المسؤول بنجاح");
+                return Success(new
+                {
+                    HasAdmins = adminCount > 0,
+                    AdminCount = adminCount,
+                    TotalUsers = totalUsers,
+                    ServerTime = DateTime.UtcNow,
+                    Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown"
+                }, "حالة النظام");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "خطأ في التحقق من حالة النظام");
+                return StatusCode(500, "لا يمكن التحقق من حالة النظام");
+            }
+        }
     }
-}
 
-public class EmergencyAdminRequest
-{
-    public string EmergencyKey { get; set; }
-    public string Username { get; set; }
-    public string Password { get; set; }
-    public string Email { get; set; }
-    public string FullName { get; set; }
-    public string PhoneNumber { get; set; }
+    public class EmergencyAdminRequest
+    {
+        public string EmergencyKey { get; set; }
+        public string Username { get; set; }
+        public string Password { get; set; }
+        public string Email { get; set; }
+        public string FullName { get; set; }
+        public string PhoneNumber { get; set; }
+    }
 }

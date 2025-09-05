@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using AutoPartsStore.Core.Models.AuthModels;
+using System.Threading.Tasks;
 
 namespace AutoPartsStore.Core.Interfaces
 {
@@ -14,31 +15,5 @@ namespace AutoPartsStore.Core.Interfaces
             string password);
     }
 
-    public class AuthenticationResult
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; }
-        public string AccessToken { get; set; }
-        public DateTime? ExpiresAt { get; set; }
-
-        public static AuthenticationResult SuccessResult(string message = null, string accessToken = null, DateTime? expiresAt = null)
-        {
-            return new AuthenticationResult
-            {
-                Success = true,
-                Message = message,
-                AccessToken = accessToken,
-                ExpiresAt = expiresAt
-            };
-        }
-
-        public static AuthenticationResult FailureResult(string message)
-        {
-            return new AuthenticationResult
-            {
-                Success = false,
-                Message = message
-            };
-        }
-    }
+    
 }
