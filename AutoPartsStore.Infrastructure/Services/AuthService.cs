@@ -3,6 +3,7 @@ using AutoPartsStore.Core.Interfaces;
 using AutoPartsStore.Core.Models.AuthModels;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -62,7 +63,7 @@ namespace AutoPartsStore.Infrastructure.Services
                 claims.Add(new Claim("Permission", permission));
             }
 
-            var key = _configuration["JWT_KEY"]
+            var key = _configuration["Jwt:Key"] ?? _configuration["JWT_KEY"]
                      ?? throw new InvalidOperationException("JWT Key is not configured.");
 
             var issuer = _configuration["Jwt:Issuer"] ?? "AutoPartsStore.Api";

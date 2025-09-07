@@ -108,10 +108,11 @@ builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
 // Services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPartCategoryRepository, PartCategoryRepository>();
+builder.Services.AddScoped<IPartCategoryService, PartCategoryService>();
 
 // чягаи езогогй JWT ЦД Configuration
-var jwtKey = builder.Configuration["JWT_KEY"]
-             ?? builder.Configuration["Jwt:Key"]
+var jwtKey = builder.Configuration["Jwt:Key"]
              ?? throw new InvalidOperationException("JWT Key is not configured.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AutoPartsStore.Api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AutoPartsStore.Client";

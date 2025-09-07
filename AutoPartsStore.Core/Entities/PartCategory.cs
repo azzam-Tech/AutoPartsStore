@@ -39,5 +39,14 @@
             IsDeleted = false;
             DeletedAt = null;
         }
+
+        public void Update(string categoryName, string? description = null, 
+                         string? imageUrl = null, int? parentCategoryId = null)
+        {
+            CategoryName = categoryName;
+            Description = description;
+            ImageUrl = imageUrl;
+            ParentCategoryId = parentCategoryId;
+        }
     }
 }

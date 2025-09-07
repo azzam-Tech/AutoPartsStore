@@ -40,7 +40,7 @@ namespace AutoPartsStore.Infrastructure.Data
             if (!optionsBuilder.IsConfigured)
             {
                 // للتطوير فقط - لا تستخدم في Production
-                optionsBuilder.UseSqlServer("Server=db26732.public.databaseasp.net; Database=db26732; User Id=db26732; Password=3e%P@8BtY_j7; Encrypt=False; MultipleActiveResultSets=True;");
+                optionsBuilder.UseSqlServer("Data Source=SQL8010.site4now.net;DataBase=db_abdf41_autopartstore;User Id=db_abdf41_autopartstore_admin;Password=3e%P@8BtY_j7PO88G;");
             }
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
