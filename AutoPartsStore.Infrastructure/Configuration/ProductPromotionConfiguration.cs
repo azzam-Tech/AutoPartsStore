@@ -10,7 +10,10 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("ProductPromotions");
             builder.HasKey(pp => pp.Id);
-            builder.Property(pp => pp.Id).HasColumnName("ProductPromotionID");
+            builder.Property(pp => pp.Id);
+
+            builder.Property(p => p.CreatedAt)
+                 .IsRequired();
 
             builder.HasOne(pp => pp.Promotion)
                 .WithMany(p => p.ProductPromotions)

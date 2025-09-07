@@ -14,8 +14,8 @@
         public decimal DiscountPercent { get; private set; }
         public int StockQuantity { get; private set; }
         public bool IsActive { get; private set; }
-        public DateTime DateAdded { get; private set; }
-        public DateTime LastUpdated { get; private set; }
+        public DateTime CreatedAt { get; private set; }
+        public DateTime? UpdatedAt { get; private set; }
         public string? ImageUrl { get; private set; }
         public bool IsDeleted { get; private set; }
         public DateTime? DeletedAt { get; private set; }
@@ -48,8 +48,7 @@
             DiscountPercent = discountPercent;
             ImageUrl = imageUrl;
             IsActive = true;
-            DateAdded = DateTime.UtcNow;
-            LastUpdated = DateTime.UtcNow;
+            CreatedAt = DateTime.UtcNow;
             IsDeleted = false;
             DeletedAt = null;
         }
@@ -58,7 +57,7 @@
         {
             if (newPrice <= 0) throw new ArgumentException("Price must be greater than zero");
             UnitPrice = newPrice;
-            LastUpdated = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         public void ReduceStock(int quantity)
@@ -66,13 +65,13 @@
             if (quantity > StockQuantity)
                 throw new InvalidOperationException("Not enough stock");
             StockQuantity -= quantity;
-            LastUpdated = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         public void IncreaseStock(int quantity)
         {
             StockQuantity += quantity;
-            LastUpdated = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         public decimal GetFinalPrice()

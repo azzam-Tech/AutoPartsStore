@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("Suppliers");
             builder.HasKey(s => s.Id);
-            builder.Property(s => s.Id).HasColumnName("SupplierID");
+            builder.Property(s => s.Id);
 
             builder.Property(s => s.SupplierName)
                 .IsRequired()

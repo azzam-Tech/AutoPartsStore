@@ -4,7 +4,7 @@
     {
         public int Id { get; private set; }
         public int PartId { get; private set; }
-        public int UserId { get; private set; }
+        public int? UserId { get; private set; }
         public int Rating { get; private set; } // 1-5
         public string? ReviewText { get; private set; }
         public DateTime ReviewDate { get; private set; }
@@ -14,7 +14,7 @@
         public CarPart CarPart { get; private set; }
         public User User { get; private set; }
 
-        public ProductReview(int partId, int userId, int rating, string? reviewText = null)
+        public ProductReview(int partId, int? userId, int rating, string? reviewText = null)
         {
             PartId = partId;
             UserId = userId;

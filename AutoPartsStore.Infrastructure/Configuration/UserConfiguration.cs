@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("Users");
             builder.HasKey(u => u.Id);
-            builder.Property(u => u.Id).HasColumnName("UserID");
+            builder.Property(u => u.Id);
 
             builder.Property(u => u.Username)
                 .IsRequired()
@@ -51,6 +51,10 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.Property(e => e.IsDeleted)
                    .HasDefaultValue(false);
 
+            builder.Property(p => p.CreatedAt)
+                   .IsRequired();
+
+            builder.Property(p => p.UpdatedAt);
             // Indexes
             builder.HasIndex(u => u.Username).IsUnique();
             builder.HasIndex(u => u.Email).IsUnique();

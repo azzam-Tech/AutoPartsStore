@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("CarParts");
             builder.HasKey(p => p.Id);
-            builder.Property(p => p.Id).HasColumnName("PartID");
+            builder.Property(p => p.Id);
 
             builder.Property(p => p.PartNumber)
                 .IsRequired()
@@ -49,11 +49,10 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .IsRequired()
                 .HasDefaultValue(true);
 
-            builder.Property(p => p.DateAdded)
+            builder.Property(p => p.CreatedAt)
                 .IsRequired();
 
-            builder.Property(p => p.LastUpdated)
-                .IsRequired();
+            builder.Property(p => p.UpdatedAt);
 
             builder.Property(p => p.ImageUrl)
                 .HasColumnName("ImageURL")
@@ -67,7 +66,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasOne(p => p.Category)
                 .WithMany(c => c.CarParts)
                 .HasForeignKey(p => p.CategoryId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasIndex(p => p.PartNumber).IsUnique();
         }

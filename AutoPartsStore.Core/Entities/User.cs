@@ -21,6 +21,8 @@ namespace AutoPartsStore.Core.Entities
         public bool IsActive { get; private set; }
         public bool IsDeleted { get; private set; }
         public DateTime? DeletedAt { get; private set; }
+        public DateTime CreatedAt { get; private set; }
+        public DateTime? UpdatedAt { get; private set; }
 
         // Relationships
         public List<UserRoleAssignment> RoleAssignments { get; private set; } = new();
@@ -40,6 +42,7 @@ namespace AutoPartsStore.Core.Entities
             IsActive = true;
             IsDeleted = false;
             DeletedAt = null;
+            CreatedAt = DateTime.UtcNow;
         }
 
         // Methods

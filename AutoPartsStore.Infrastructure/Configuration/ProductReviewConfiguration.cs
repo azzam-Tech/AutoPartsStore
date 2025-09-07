@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("ProductReviews");
             builder.HasKey(pr => pr.Id);
-            builder.Property(pr => pr.Id).HasColumnName("ReviewID");
+            builder.Property(pr => pr.Id);
 
             builder.HasOne(pr => pr.CarPart)
                 .WithMany(p => p.Reviews)
@@ -20,7 +20,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasOne(pr => pr.User)
                 .WithMany(u => u.Reviews)
                 .HasForeignKey(pr => pr.UserId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.SetNull);
 
             builder.Property(pr => pr.Rating)
                 .IsRequired();

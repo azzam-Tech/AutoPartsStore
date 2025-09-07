@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("ShoppingCarts");
             builder.HasKey(sc => sc.Id);
-            builder.Property(sc => sc.Id).HasColumnName("CartID");
+            builder.Property(sc => sc.Id);
 
             builder.HasOne(sc => sc.User)
                 .WithOne(u => u.ShoppingCart)

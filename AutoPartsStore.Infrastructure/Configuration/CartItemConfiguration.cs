@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("CartItems");
             builder.HasKey(ci => ci.Id);
-            builder.Property(ci => ci.Id).HasColumnName("CartItemID");
+            builder.Property(ci => ci.Id);
 
             builder.HasOne(ci => ci.Cart)
                 .WithMany(sc => sc.Items)
@@ -20,13 +20,13 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasOne(ci => ci.CarPart)
                 .WithMany(p => p.CartItems)
                 .HasForeignKey(ci => ci.PartId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(ci => ci.Quantity)
                 .IsRequired()
                 .HasDefaultValue(1);
 
-            builder.Property(ci => ci.AddedDate)
+            builder.Property(ci => ci.CreatedAt)
                 .IsRequired();
 
             builder.HasIndex(ci => new { ci.CartId, ci.PartId }).IsUnique();

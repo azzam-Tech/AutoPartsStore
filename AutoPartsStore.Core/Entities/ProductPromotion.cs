@@ -5,6 +5,7 @@
         public int Id { get; private set; }
         public int PromotionId { get; private set; }
         public int PartId { get; private set; }
+        public DateTime CreatedAt { get; private set; }
 
         // Navigation
         public Promotion Promotion { get; private set; }
@@ -14,6 +15,7 @@
         {
             PromotionId = promotionId;
             PartId = partId;
+            CreatedAt = DateTime.UtcNow;
         }
     }
 }

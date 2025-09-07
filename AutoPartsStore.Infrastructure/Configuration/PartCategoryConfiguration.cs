@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("PartCategories");
             builder.HasKey(c => c.Id);
-            builder.Property(c => c.Id).HasColumnName("CategoryID");
+            builder.Property(c => c.Id);
 
             builder.Property(c => c.CategoryName)
                 .IsRequired()
@@ -34,7 +34,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasOne(c => c.ParentCategory)
                 .WithMany(c => c.SubCategories)
                 .HasForeignKey(c => c.ParentCategoryId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 
