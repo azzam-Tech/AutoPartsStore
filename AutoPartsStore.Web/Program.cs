@@ -4,7 +4,6 @@ using AutoPartsStore.Infrastructure.Repositories;
 using AutoPartsStore.Infrastructure.Services;
 using AutoPartsStore.Web.Middleware;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -112,6 +111,10 @@ builder.Services.AddScoped<IPartCategoryRepository, PartCategoryRepository>();
 builder.Services.AddScoped<IPartCategoryService, PartCategoryService>();
 builder.Services.AddScoped<ICarPartRepository, CarPartRepository>();
 builder.Services.AddScoped<ICarPartService, CarPartService>();
+builder.Services.AddScoped<ICityRepository, CityRepository>();
+builder.Services.AddScoped<ICityService, CityService>();
+builder.Services.AddScoped<IDistrictRepository, DistrictRepository>();
+builder.Services.AddScoped<IDistrictService, DistrictService>();
 
 // чягаи езогогй JWT ЦД Configuration
 var jwtKey = builder.Configuration["Jwt:Key"]

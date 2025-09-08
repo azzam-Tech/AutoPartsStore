@@ -1,6 +1,6 @@
 ﻿namespace AutoPartsStore.Core.Entities
 {
-    public class District 
+    public class District
     {
         public int Id { get; private set; }
         public int CityId { get; private set; }
@@ -14,6 +14,20 @@
         {
             CityId = cityId;
             DistrictName = districtName;
+        }
+
+        // Methods
+        public void UpdateName(string districtName)
+        {
+            if (string.IsNullOrWhiteSpace(districtName))
+                throw new ArgumentException("District name cannot be empty");
+
+            DistrictName = districtName;
+        }
+
+        public void ChangeCity(int cityId)
+        {
+            CityId = cityId;
         }
     }
 }
