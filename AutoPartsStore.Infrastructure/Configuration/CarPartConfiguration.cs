@@ -68,7 +68,16 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .HasForeignKey(p => p.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Indexes
             builder.HasIndex(p => p.PartNumber).IsUnique();
+            builder.HasIndex(p => p.PartName);
+            builder.HasIndex(p => p.CategoryId);
+            builder.HasIndex(p => p.CarBrand);
+            builder.HasIndex(p => p.CarModel);
+            builder.HasIndex(p => p.IsActive);
+            builder.HasIndex(p => p.IsDeleted);
+            builder.HasIndex(p => p.UnitPrice);
+            builder.HasIndex(p => new { p.IsActive, p.IsDeleted });
         }
     }
 

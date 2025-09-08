@@ -110,6 +110,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPartCategoryRepository, PartCategoryRepository>();
 builder.Services.AddScoped<IPartCategoryService, PartCategoryService>();
+builder.Services.AddScoped<ICarPartRepository, CarPartRepository>();
+builder.Services.AddScoped<ICarPartService, CarPartService>();
 
 // чягаи езогогй JWT ЦД Configuration
 var jwtKey = builder.Configuration["Jwt:Key"]
