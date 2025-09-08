@@ -35,6 +35,12 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .WithMany(c => c.SubCategories)
                 .HasForeignKey(c => c.ParentCategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            builder.HasIndex(pc => pc.CategoryName);
+            builder.HasIndex(pc => pc.ParentCategoryId);
+            builder.HasIndex(pc => pc.IsActive);
+            builder.HasIndex(pc => pc.IsDeleted);
         }
     }
 

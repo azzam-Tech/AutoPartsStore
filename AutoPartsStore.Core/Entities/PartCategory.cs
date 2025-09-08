@@ -1,11 +1,18 @@
-﻿namespace AutoPartsStore.Core.Entities
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace AutoPartsStore.Core.Entities
 {
     public class PartCategory 
     {
         public int Id { get; private set; }
+        [Required]
+        [MaxLength(100)]
         public string CategoryName { get; private set; }
         public int? ParentCategoryId { get; private set; }
+        [MaxLength(500)]
         public string? Description { get; private set; }
+        [Url]
+        [MaxLength(255)]
         public string? ImageUrl { get; private set; }
         public bool IsActive { get; private set; }
         public bool IsDeleted { get; private set; }
