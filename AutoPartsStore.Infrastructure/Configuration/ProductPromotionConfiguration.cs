@@ -15,6 +15,9 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.Property(p => p.CreatedAt)
                  .IsRequired();
 
+            builder.Property(p => p.UpdatedAt)
+                .IsRequired(false);
+
             builder.HasOne(pp => pp.Promotion)
                 .WithMany(p => p.ProductPromotions)
                 .HasForeignKey(pp => pp.PromotionId)

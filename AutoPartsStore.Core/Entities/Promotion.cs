@@ -58,6 +58,39 @@
             IsDeleted = false;
             DeletedAt = null;
         }
+
+        // الأساليب للتعديل
+        public void UpdateBasicInfo(string promotionName, string description, decimal minOrderAmount)
+        {
+            PromotionName = promotionName;
+            Description = description;
+            MinOrderAmount = minOrderAmount;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void UpdateDiscountInfo(DiscountType discountType, decimal discountValue)
+        {
+            DiscountType = discountType;
+            DiscountValue = discountValue;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void UpdateDateRange(DateTime startDate, DateTime endDate)
+        {
+            if (startDate >= endDate)
+                throw new ArgumentException("Start date must be before end date");
+
+            StartDate = startDate;
+            EndDate = endDate;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void SetActiveStatus(bool isActive)
+        {
+            IsActive = isActive;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
     }
 
     public enum DiscountType
