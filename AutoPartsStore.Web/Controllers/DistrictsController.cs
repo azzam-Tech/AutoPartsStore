@@ -43,7 +43,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpPost]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CreateDistrictRequest request)
         {
             try
@@ -58,7 +58,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpPut("{id}")]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateDistrictRequest request)
         {
             try
@@ -73,7 +73,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpDelete("{id}")]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             try

@@ -51,7 +51,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpPost]
-        //[Authorize(Roles = "Admin,Supplier")]
+        [Authorize(Roles = "Admin,Supplier")]
         public async Task<IActionResult> Create([FromBody] CreateCarPartRequest request)
         {
             try
@@ -66,7 +66,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpPut("{id}")]
-        //[Authorize(Roles = "Admin,Supplier")]
+        [Authorize(Roles = "Admin,Supplier")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateCarPartRequest request)
         {
             try
@@ -81,7 +81,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpDelete("{id}")]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             try
@@ -96,7 +96,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpPatch("{id}/stock")]
-        //[Authorize(Roles = "Admin,Supplier")]
+        [Authorize(Roles = "Admin,Supplier")]
         public async Task<IActionResult> UpdateStock(int id, [FromBody] int quantity)
         {
             try
@@ -111,7 +111,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpPatch("{id}/price")]
-        //[Authorize(Roles = "Admin,Supplier")]
+        [Authorize(Roles = "Admin,Supplier")]
         public async Task<IActionResult> UpdatePrice(int id, [FromBody] decimal price)
         {
             try

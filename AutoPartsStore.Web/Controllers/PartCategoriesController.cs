@@ -35,7 +35,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpPost]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CreatePartCategoryRequest request)
         {
             try
@@ -50,7 +50,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpPut("{id}")]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdatePartCategoryRequest request)
         {
             try
@@ -65,7 +65,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpDelete("{id}")]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             try
@@ -80,7 +80,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ToggleStatus(int id)
         {
             try

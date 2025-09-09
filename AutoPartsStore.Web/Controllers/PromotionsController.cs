@@ -7,7 +7,7 @@ namespace AutoPartsStore.Web.Controllers
 {
     [ApiController]
     [Route("api/promotions")]
-    //[Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
     public class PromotionsController : BaseController
     {
         private readonly IPromotionService _promotionService;
