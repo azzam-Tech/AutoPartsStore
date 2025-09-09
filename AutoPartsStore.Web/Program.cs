@@ -5,6 +5,7 @@ using AutoPartsStore.Infrastructure.Services;
 using AutoPartsStore.Web.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,40 +14,29 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // Add Swagger services
-builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "AutoPartsStore API",
-        Version = "v1",
-        Description = "API for AutoPartsStore Management System",
-        Contact = new Microsoft.OpenApi.Models.OpenApiContact
-        {
-            Name = "Development Team",
-            Email = "dev@autopartsstore.com"
-        }
-    });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
 
-    // Add JWT Bearer token support in Swagger
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    // ≈⁄œ«œ «·‹ JWT Auth
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer",
         BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Enter your JWT token in the format: Bearer {your token}"
+        In = ParameterLocation.Header,
+        Description = "«ﬂ » ﬂ·„… 'Bearer' »⁄œÂ« ›—«€ À„ «· Êﬂ‰. „À«·: Bearer 12345abcdef"
     });
 
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            new OpenApiSecurityScheme
             {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                Reference = new OpenApiReference
                 {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
                 }
             },
@@ -54,6 +44,9 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
+
+
 
 // CORS
 builder.Services.AddCors(options =>
@@ -158,46 +151,10 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+app.UseSwagger();
+app.UseSwaggerUI();
 
-// ﬁ—«¡… ≈⁄œ«œ«  Swagger
-var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger", false);
-var swaggerAuthKey = "AutoPartsStore_Swagger_Secret_Key_2025!@#$%";
 
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment() || enableSwagger)
-{
-    app.UseDeveloperExceptionPage();
-    app.UseSwagger();
-
-    // ≈÷«›… Õ„«Ì… ·‹ Swagger ›Ì Production
-    if (app.Environment.IsProduction() && !string.IsNullOrEmpty(swaggerAuthKey))
-    {
-        app.Use(async (context, next) =>
-        {
-            if (context.Request.Path.StartsWithSegments("/swagger"))
-            {
-                var authKey = context.Request.Query["key"].ToString();
-                if (0 != 0)
-                {
-                    context.Response.StatusCode = 401;
-                    await context.Response.WriteAsync("Swagger access requires authentication key. Use ?key=YourSecretKey");
-                    return;
-                }
-            }
-            await next();
-        });
-    }
-
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoPartsStore API V1");
-        c.RoutePrefix = "swagger";
-    });
-}
-else
-{
-    app.UseHsts();
-}
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
