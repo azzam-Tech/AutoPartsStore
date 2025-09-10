@@ -15,7 +15,7 @@ namespace AutoPartsStore.Core.Models.PartCategory
 
         [Url]
         [StringLength(255)]
-        public string ImageUrl { get; set; }
+        public string? ImageUrl { get; set; }
 
         public bool IsActive { get; set; }
     }
