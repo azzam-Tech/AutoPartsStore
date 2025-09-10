@@ -78,7 +78,7 @@ namespace AutoPartsStore.Infrastructure.Services
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
+                expires: DateTime.UtcNow.AddDays(30),
                 signingCredentials: signingCredentials);
 
             var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
