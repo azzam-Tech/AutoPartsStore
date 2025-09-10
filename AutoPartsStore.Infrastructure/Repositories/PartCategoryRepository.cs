@@ -13,7 +13,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
         public async Task<IEnumerable<PartCategoryDto>> GetAllCategoriesAsync()
         {
             return await _context.PartCategories
-                .Where(pc => !pc.IsDeleted)
+                .Where(pc => !pc.IsDeleted && pc.IsActive && pc.ParentCategoryId == null)
                 .Select(pc => new PartCategoryDto
                 {
                     Id = pc.Id,
@@ -25,15 +25,29 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     IsActive = pc.IsActive,
                     ProductsCount = pc.CarParts.Count(cp => !cp.IsDeleted),
                     SubCategories = pc.SubCategories
-                        .Where(sc => !sc.IsDeleted && sc.IsActive)
+                        .Where(sc => !sc.IsDeleted && sc.IsActive && sc.ParentCategoryId == pc.Id)
                         .Select(sc => new PartCategoryDto
                         {
                             Id = sc.Id,
+                            ParentCategoryId = sc.ParentCategoryId,
                             CategoryName = sc.CategoryName,
+                            Description = sc.Description,
                             ImageUrl = sc.ImageUrl,
-                            ProductsCount = sc.CarParts.Count(cp => !cp.IsDeleted)
+                            ProductsCount = sc.CarParts.Count(cp => !cp.IsDeleted),
+                            SubCategories = sc.SubCategories
+                                .Where(ssc => !ssc.IsDeleted && ssc.IsActive && ssc.ParentCategoryId == sc.Id)
+                                .Select(ssc => new PartCategoryDto
+                                {
+                                    Id = ssc.Id,
+                                    ParentCategoryId = ssc.ParentCategoryId,
+                                    CategoryName = ssc.CategoryName,
+                                    Description = ssc.Description,
+                                    ImageUrl = ssc.ImageUrl,
+                                    ProductsCount = ssc.CarParts.Count(cp => !cp.IsDeleted)
+                                })
+                                .ToList() ?? null
                         })
-                        .ToList()
+                        .ToList() ?? null
                 })
                 .ToListAsync();
         }
@@ -41,7 +55,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
         public async Task<PartCategoryDto> GetCategoryByIdAsync(int id)
         {
             return await _context.PartCategories
-                .Where(pc => pc.Id == id && !pc.IsDeleted)
+                .Where(pc => pc.Id == id && !pc.IsDeleted && pc.IsActive)
                 .Select(pc => new PartCategoryDto
                 {
                     Id = pc.Id,
@@ -53,15 +67,29 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     IsActive = pc.IsActive,
                     ProductsCount = pc.CarParts.Count(cp => !cp.IsDeleted),
                     SubCategories = pc.SubCategories
-                        .Where(sc => !sc.IsDeleted && sc.IsActive)
+                        .Where(sc => !sc.IsDeleted && sc.IsActive && sc.ParentCategoryId == pc.Id)
                         .Select(sc => new PartCategoryDto
                         {
                             Id = sc.Id,
+                            ParentCategoryId = sc.ParentCategoryId,
                             CategoryName = sc.CategoryName,
+                            Description = sc.Description,
                             ImageUrl = sc.ImageUrl,
-                            ProductsCount = sc.CarParts.Count(cp => !cp.IsDeleted)
+                            ProductsCount = sc.CarParts.Count(cp => !cp.IsDeleted),
+                            SubCategories = sc.SubCategories
+                                .Where(ssc => !ssc.IsDeleted && ssc.IsActive && ssc.ParentCategoryId == sc.Id)
+                                .Select(ssc => new PartCategoryDto
+                                {
+                                    Id = ssc.Id,
+                                    ParentCategoryId = ssc.ParentCategoryId,
+                                    CategoryName = ssc.CategoryName,
+                                    Description = ssc.Description,
+                                    ImageUrl = ssc.ImageUrl,
+                                    ProductsCount = ssc.CarParts.Count(cp => !cp.IsDeleted)
+                                })
+                                .ToList() ?? null
                         })
-                        .ToList()
+                        .ToList() ?? null
                 })
                 .FirstOrDefaultAsync();
         }
