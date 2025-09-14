@@ -49,7 +49,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
         public async Task<IEnumerable<CarPartDto>> GetFilteredAsync(CarPartFilter filter)
         {
             var query = _context.CarParts
-                .Where(p => !p.IsDeleted && p.IsActive)
+                .Where(p => !p.IsDeleted)
                 .AsQueryable();
 
             // Apply filters
@@ -83,6 +83,9 @@ namespace AutoPartsStore.Infrastructure.Repositories
 
             if (filter.OnSale.HasValue)
                 query = query.Where(p => p.IsOnSale() == filter.OnSale);
+
+            if (filter.IsActive.HasValue)
+                query = query.Where(p => p.IsActive == filter.IsActive);
 
             // Apply sorting
             query = filter.SortBy  switch

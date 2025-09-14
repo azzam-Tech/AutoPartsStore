@@ -8,6 +8,7 @@
         public string? CarModel { get; set; }
         public decimal? MinPrice { get; set; }
         public decimal? MaxPrice { get; set; }
+        public bool? IsActive { get; set; } = true;
         public bool? InStock { get; set; }
         public bool? OnSale { get; set; }
         public SortBy SortBy { get; set; } = SortBy.name;
