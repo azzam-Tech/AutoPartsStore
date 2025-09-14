@@ -85,11 +85,11 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 query = query.Where(p => p.IsOnSale() == filter.OnSale);
 
             // Apply sorting
-            query = filter.SortBy.ToLower() switch
+            query = filter.SortBy  switch
             {
-                "price" => filter.SortDescending ? query.OrderByDescending(p => p.UnitPrice) : query.OrderBy(p => p.UnitPrice),
-                "name" => filter.SortDescending ? query.OrderByDescending(p => p.PartName) : query.OrderBy(p => p.PartName),
-                "newest" => query.OrderByDescending(p => p.CreatedAt),
+                SortBy.price => filter.SortDescending ? query.OrderByDescending(p => p.UnitPrice) : query.OrderBy(p => p.UnitPrice),
+                SortBy.name => filter.SortDescending ? query.OrderByDescending(p => p.PartName) : query.OrderBy(p => p.PartName),
+                SortBy.newest => query.OrderByDescending(p => p.CreatedAt),
                 _ => query.OrderBy(p => p.PartName)
             };
 
