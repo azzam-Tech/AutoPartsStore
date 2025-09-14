@@ -97,6 +97,36 @@ namespace AutoPartsStore.Web.Controllers
             }
         }
 
+        [HttpPatch("{id}/active")]
+        [Authorize(Roles = "Admin,Supplier")]
+        public async Task<IActionResult> ActivateAsync(int id)
+        {
+            try
+            {
+                await _promotionService.ActivateAsync(id);
+                return Success("promotion activated successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPatch("{id}/inactive")]
+        [Authorize(Roles = "Admin,Supplier")]
+        public async Task<IActionResult> DeactivateAsync(int id)
+        {
+            try
+            {
+                await _promotionService.DeactivateAsync(id);
+                return Success("promotion deactivated successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpGet("{promotionId}/products")]
         public async Task<IActionResult> GetPromotionProducts(int promotionId)
         {

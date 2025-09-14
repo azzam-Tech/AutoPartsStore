@@ -91,6 +91,18 @@
             UpdatedAt = DateTime.UtcNow;
         }
 
+        public void Activate()
+        {
+            IsActive = true;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void Deactivate()
+        {
+            IsActive = false;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
     }
 
     public enum DiscountType

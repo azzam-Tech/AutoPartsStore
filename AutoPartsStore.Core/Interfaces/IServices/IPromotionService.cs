@@ -14,5 +14,7 @@ namespace AutoPartsStore.Core.Interfaces
         Task<IEnumerable<ProductPromotionDto>> GetPromotionProductsAsync(int promotionId);
         Task<ProductPromotionDto> AddProductToPromotionAsync(int promotionId, AddProductToPromotionRequest request);
         Task<bool> RemoveProductFromPromotionAsync(int promotionId, int partId);
+        Task<bool> ActivateAsync(int id);
+        Task<bool> DeactivateAsync(int id);
     }
 }

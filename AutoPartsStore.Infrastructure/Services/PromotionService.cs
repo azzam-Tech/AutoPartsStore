@@ -183,5 +183,31 @@ namespace AutoPartsStore.Infrastructure.Services
             _logger.LogInformation("Product {PartId} removed from promotion {PromotionId}", partId, promotionId);
             return true;
         }
+
+        public async Task<bool> DeactivateAsync(int id)
+        {
+            var promotion = await _context.Promotions.FindAsync(id);
+            if (promotion == null || promotion.IsDeleted || !promotion.IsActive)
+                throw new KeyNotFoundException("promotion not found or already inactive.");
+
+            promotion.Deactivate();
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("promotion deactivated: {promotionId}", id);
+            return true;
+        }
+
+        public async Task<bool> ActivateAsync(int id)
+        {
+            var promotion = await _context.CarParts.FindAsync(id);
+            if (promotion == null || promotion.IsDeleted || promotion.IsActive)
+                throw new KeyNotFoundException("promotion not found or already active.");
+
+            promotion.Activate();
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("promotion activated: {promotionId}", id);
+            return true;
+        }
     }
 }
