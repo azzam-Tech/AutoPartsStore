@@ -143,5 +143,31 @@ namespace AutoPartsStore.Infrastructure.Services
         {
             return await _partRepository.GetMaxPriceAsync();
         }
+
+        public async Task<bool> DeactivateAsync(int id)
+        {
+            var part = await _context.CarParts.FindAsync(id);
+            if (part == null || part.IsDeleted || !part.IsActive)
+                throw new KeyNotFoundException("Car part not found or already inactive.");
+
+            part.Deactivate();
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("part deactivated: {PartId}", id);
+            return true;
+        }
+
+        public async Task<bool> ActivateAsync(int id)
+        {
+            var part = await _context.CarParts.FindAsync(id);
+            if (part == null || part.IsDeleted || part.IsActive)
+                throw new KeyNotFoundException("Car part not found or already active.");
+
+            part.Activate();
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("part activated: {PartId}", id);
+            return true;
+        }
     }
 }

@@ -124,5 +124,35 @@ namespace AutoPartsStore.Web.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPatch("{id}/active")]
+        [Authorize(Roles = "Admin,Supplier")]
+        public async Task<IActionResult> ActivateAsync(int id)
+        {
+            try
+            {
+                await _partService.ActivateAsync(id);
+                return Success("Car part activated successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPatch("{id}/inactive")]
+        [Authorize(Roles = "Admin,Supplier")]
+        public async Task<IActionResult> DeactivateAsync(int id)
+        {
+            try
+            {
+                await _partService.DeactivateAsync(id);
+                return Success("Car part deactivated successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

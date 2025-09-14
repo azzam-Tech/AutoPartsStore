@@ -13,5 +13,9 @@ namespace AutoPartsStore.Core.Interfaces
         Task<bool> UpdateStockAsync(int id, int quantity);
         Task<bool> UpdatePriceAsync(int id, decimal price);
         Task<decimal> GetMaxPriceAsync();
+        Task<bool> DeactivateAsync(int id);
+        Task<bool> ActivateAsync(int id);
+
+
     }
 }
