@@ -199,9 +199,11 @@ namespace AutoPartsStore.Infrastructure.Services
 
         public async Task<bool> ActivateAsync(int id)
         {
-            var promotion = await _context.CarParts.FindAsync(id);
+            var promotion = await _context.Promotions.FindAsync(id);
             if (promotion == null || promotion.IsDeleted || promotion.IsActive)
                 throw new KeyNotFoundException("promotion not found or already active.");
+            if (DateTime.UtcNow < promotion.StartDate || DateTime.UtcNow > promotion.EndDate)
+                throw new InvalidOperationException("Cannot activate promotion outside its valid date range.");
 
             promotion.Activate();
             await _context.SaveChangesAsync();
