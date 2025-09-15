@@ -1,5 +1,6 @@
 ﻿using AutoPartsStore.Core.Entities;
 using AutoPartsStore.Core.Interfaces;
+using AutoPartsStore.Core.Models;
 using AutoPartsStore.Core.Models.Promotion;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -10,11 +11,32 @@ namespace AutoPartsStore.Infrastructure.Repositories
     {
         public PromotionRepository(AppDbContext context) : base(context) { }
 
-        public async Task<IEnumerable<PromotionDto>> GetAllWithDetailsAsync()
+        public async Task<PagedResult<PromotionDto>> GetAllWithDetailsAsync(PromotionFilter filter)
         {
-            return await _context.Promotions
-                .Where(p => !p.IsDeleted)
-                .Select(p => new PromotionDto
+            var query = _context.Promotions
+                .Where(p => !p.IsDeleted).AsQueryable();
+
+            if (filter.isActive.HasValue)
+                query = query.Where(p => p.IsActive == filter.isActive);
+            if (filter.discountType.HasValue)
+                query =query.Where(p => p.DiscountType == filter.discountType);
+
+            var totalCount = _context.Promotions.Count(p => !p.IsDeleted); ;
+            if (filter.isActive.HasValue)
+                totalCount = _context.Promotions.Count(p => !p.IsDeleted && p.IsActive == filter.isActive);
+            var totalPages = (int)Math.Ceiling(totalCount / (float)filter.pageSize);
+
+            // Apply pagination
+            query = query.Skip((filter.pageNum - 1) * filter.pageSize)
+           .Take(filter.pageSize);
+
+            var pagedResult = new PagedResult<PromotionDto>
+            {
+                CurrentPage = filter.pageNum,
+                PageSize = filter.pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                Items = await query.Select(p => new PromotionDto
                 {
                     Id = p.Id,
                     PromotionName = p.PromotionName,
@@ -32,7 +54,9 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     ProductCount = p.ProductPromotions.Count
                 })
                 .OrderByDescending(p => p.CreatedAt)
-                .ToListAsync();
+                .ToListAsync()
+            };
+            return pagedResult;
         }
 
         public async Task<PromotionDto> GetByIdWithDetailsAsync(int id)

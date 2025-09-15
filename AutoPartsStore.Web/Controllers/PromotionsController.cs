@@ -1,4 +1,5 @@
-﻿using AutoPartsStore.Core.Interfaces;
+﻿using AutoPartsStore.Core.Entities;
+using AutoPartsStore.Core.Interfaces;
 using AutoPartsStore.Core.Models.Promotion;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,9 +21,9 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllPromotions()
+        public async Task<IActionResult> GetAllPromotions([FromQuery] PromotionFilter filter)
         {
-            var promotions = await _promotionService.GetAllPromotionsAsync();
+            var promotions = await _promotionService.GetAllPromotionsAsync(filter);
             return Success(promotions);
         }
 

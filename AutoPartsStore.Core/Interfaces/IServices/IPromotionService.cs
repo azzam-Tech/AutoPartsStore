@@ -1,10 +1,12 @@
-﻿using AutoPartsStore.Core.Models.Promotion;
+﻿using AutoPartsStore.Core.Entities;
+using AutoPartsStore.Core.Models;
+using AutoPartsStore.Core.Models.Promotion;
 
 namespace AutoPartsStore.Core.Interfaces
 {
     public interface IPromotionService
     {
-        Task<IEnumerable<PromotionDto>> GetAllPromotionsAsync();
+        Task<PagedResult<PromotionDto>> GetAllPromotionsAsync(PromotionFilter filter);
         Task<PromotionDto> GetPromotionByIdAsync(int id);
         Task<IEnumerable<PromotionDto>> GetActivePromotionsAsync();
         Task<PromotionDto> CreatePromotionAsync(CreatePromotionRequest request);

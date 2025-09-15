@@ -1,5 +1,6 @@
 ﻿using AutoPartsStore.Core.Entities;
 using AutoPartsStore.Core.Interfaces;
+using AutoPartsStore.Core.Models;
 using AutoPartsStore.Core.Models.Promotion;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -26,9 +27,9 @@ namespace AutoPartsStore.Infrastructure.Services
             _logger = logger;
         }
 
-        public async Task<IEnumerable<PromotionDto>> GetAllPromotionsAsync()
+        public async Task<PagedResult<PromotionDto>> GetAllPromotionsAsync(PromotionFilter filter)
         {
-            return await _promotionRepository.GetAllWithDetailsAsync();
+            return await _promotionRepository.GetAllWithDetailsAsync(filter);
         }
 
         public async Task<PromotionDto> GetPromotionByIdAsync(int id)
