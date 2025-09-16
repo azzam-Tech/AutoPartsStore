@@ -147,11 +147,16 @@ namespace AutoPartsStore.Infrastructure.Services
             {
                 var part = await _context.CarParts.FindAsync(carPartId);
                 // جلب جميع العروض النشطة المرتبطة بهذه القطعة
-                var activePromotions = await _context.ProductPromotions
+                var promotionsId = await _context.ProductPromotions
                     .Where(pp => pp.PartId == carPartId)
-                    .Select(pp => pp.Promotion)
-                    .Where(p => p.IsActive && !p.IsDeleted && p.IsActiveNow())
+                    .Select(pp => pp.PromotionId)
+                    //.Where(p => p.IsActive && !p.IsDeleted && p.IsActiveNow())
                     .ToListAsync();
+                var activePromotions = (await _context.Promotions
+                    .Where(p => promotionsId.Contains(p.Id) && p.IsActive && !p.IsDeleted)
+                    .ToListAsync())
+                    .Where(p => p.IsActiveNow())
+                    .ToList();
 
                 decimal? finalPrice = null; // السعر الأصلي هو الأساس
 
