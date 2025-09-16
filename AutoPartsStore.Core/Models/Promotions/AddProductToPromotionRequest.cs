@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace AutoPartsStore.Core.Models.Promotion
+namespace AutoPartsStore.Core.Models.Promotions
 {
     public class AddProductToPromotionRequest
     {

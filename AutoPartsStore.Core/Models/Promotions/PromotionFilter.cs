@@ -1,6 +1,6 @@
 ﻿using AutoPartsStore.Core.Entities;
 
-namespace AutoPartsStore.Core.Models.Promotion
+namespace AutoPartsStore.Core.Models.Promotions
 {
     public class PromotionFilter
     {

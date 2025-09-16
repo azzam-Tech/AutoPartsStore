@@ -1,7 +1,7 @@
 ﻿using AutoPartsStore.Core.Entities;
 using AutoPartsStore.Core.Interfaces;
 using AutoPartsStore.Core.Models;
-using AutoPartsStore.Core.Models.Promotion;
+using AutoPartsStore.Core.Models.Promotions;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

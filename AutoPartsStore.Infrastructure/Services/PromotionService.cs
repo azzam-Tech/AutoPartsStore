@@ -1,7 +1,7 @@
 ﻿using AutoPartsStore.Core.Entities;
 using AutoPartsStore.Core.Interfaces;
 using AutoPartsStore.Core.Models;
-using AutoPartsStore.Core.Models.Promotion;
+using AutoPartsStore.Core.Models.Promotions;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -12,17 +12,20 @@ namespace AutoPartsStore.Infrastructure.Services
     {
         private readonly IPromotionRepository _promotionRepository;
         private readonly IProductPromotionRepository _productPromotionRepository;
+        private readonly IPricingService _pricingService;
         private readonly AppDbContext _context;
         private readonly ILogger<PromotionService> _logger;
 
         public PromotionService(
             IPromotionRepository promotionRepository,
             IProductPromotionRepository productPromotionRepository,
+            IPricingService pricingService,
             AppDbContext context,
             ILogger<PromotionService> logger)
         {
             _promotionRepository = promotionRepository;
             _productPromotionRepository = productPromotionRepository;
+            _pricingService = pricingService;
             _context = context;
             _logger = logger;
         }
@@ -158,6 +161,9 @@ namespace AutoPartsStore.Infrastructure.Services
 
             _logger.LogInformation("Product {PartId} added to promotion {PromotionId}", request.PartId, promotionId);
 
+            await _pricingService.CalculateAndUpdateFinalPriceAsync(request.PartId);
+
+
             return new ProductPromotionDto
             {
                 Id = productPromotion.Id,
@@ -182,7 +188,10 @@ namespace AutoPartsStore.Infrastructure.Services
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Product {PartId} removed from promotion {PromotionId}", partId, promotionId);
+            await _pricingService.CalculateAndUpdateFinalPriceAsync(partId);
+
             return true;
+
         }
 
         public async Task<bool> DeactivateAsync(int id)

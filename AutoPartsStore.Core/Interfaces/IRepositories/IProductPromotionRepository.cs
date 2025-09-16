@@ -1,5 +1,5 @@
 ﻿using AutoPartsStore.Core.Entities;
-using AutoPartsStore.Core.Models.Promotion;
+using AutoPartsStore.Core.Models.Promotions;
 
 namespace AutoPartsStore.Core.Interfaces
 {

@@ -30,6 +30,7 @@ namespace AutoPartsStore.Core.Entities
 
         [Range(0.01, double.MaxValue)]
         public decimal UnitPrice { get; private set; }
+        public decimal FinalPrice { get; private set; }
 
         [Range(0, 100)]
         public decimal DiscountPercent { get; private set; }
@@ -180,6 +181,15 @@ namespace AutoPartsStore.Core.Entities
         public decimal GetFinalPrice()
         {
             return UnitPrice * (1 - DiscountPercent / 100);
+        }
+
+        public void UpdateFinalPrice(decimal finalPrice)
+        {
+            if (finalPrice < 0)
+                throw new ArgumentException("Final price cannot be negative");
+
+            FinalPrice = finalPrice;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         public bool IsInStock() => StockQuantity > 0;

@@ -1,4 +1,6 @@
-﻿namespace AutoPartsStore.Core.Models.Promotion
+﻿using AutoPartsStore.Core.Entities;
+
+namespace AutoPartsStore.Core.Models.Promotions
 {
     public class ProductPromotionDto
     {
@@ -9,5 +11,6 @@
         public string PartNumber { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public PromotionDto? PromotionDto { get; set; }
     }
 }

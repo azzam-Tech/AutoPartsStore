@@ -37,6 +37,11 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .IsRequired()
                 .HasColumnType("DECIMAL(10,2)");
 
+            builder.Property(p => p.FinalPrice)
+                .IsRequired()
+                .HasColumnType("DECIMAL(10,2)")
+                .HasDefaultValue(0);
+
             builder.Property(p => p.DiscountPercent)
                 .HasDefaultValue(0)
                 .HasColumnType("DECIMAL(5,2)");

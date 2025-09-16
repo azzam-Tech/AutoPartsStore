@@ -1,6 +1,6 @@
 ﻿using AutoPartsStore.Core.Entities;
 using AutoPartsStore.Core.Interfaces;
-using AutoPartsStore.Core.Models.Promotion;
+using AutoPartsStore.Core.Models.Promotions;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,7 +42,23 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     PartName = pp.CarPart.PartName,
                     PartNumber = pp.CarPart.PartNumber,
                     CreatedAt = pp.CreatedAt,
-                    UpdatedAt = pp.UpdatedAt
+                    UpdatedAt = pp.UpdatedAt,
+                    PromotionDto = new PromotionDto{
+                        Id = pp.Promotion.Id,
+                        PromotionName = pp.Promotion.PromotionName,
+                        Description = pp.Promotion.Description ?? "",
+                        DiscountType = pp.Promotion.DiscountType,
+                        DiscountValue = pp.Promotion.DiscountValue,
+                        StartDate = pp.Promotion.StartDate,
+                        EndDate = pp.Promotion.EndDate,
+                        IsActive = pp.Promotion.IsActive,
+                        MinOrderAmount = pp.Promotion.MinOrderAmount,
+                        IsDeleted = pp.Promotion.IsDeleted,
+                        CreatedAt = pp.Promotion.CreatedAt,
+                        UpdatedAt = pp.Promotion.UpdatedAt,
+                        IsActiveNow = pp.Promotion.IsActiveNow(),
+                        ProductCount = pp.Promotion.ProductPromotions.Count
+                    }
                 })
                 .ToListAsync();
         }

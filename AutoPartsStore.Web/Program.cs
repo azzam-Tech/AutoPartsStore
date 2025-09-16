@@ -116,6 +116,7 @@ builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
 builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
 builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
+builder.Services.AddScoped<IPricingService, PricingService>();
 
 // чягаи езогогй JWT ЦД Configuration
 var jwtKey = builder.Configuration["Jwt:Key"]
