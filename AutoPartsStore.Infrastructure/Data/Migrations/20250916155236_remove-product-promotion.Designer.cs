@@ -4,6 +4,7 @@ using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AutoPartsStore.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250916155236_remove-product-promotion")]
+    partial class removeproductpromotion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -131,6 +134,9 @@ namespace AutoPartsStore.Infrastructure.Data.Migrations
                     b.Property<int?>("PromotionId")
                         .HasColumnType("int");
 
+                    //b.Property<int?>("PromotionId1")
+                    //    .HasColumnType("int");
+
                     b.Property<int>("StockQuantity")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -160,6 +166,8 @@ namespace AutoPartsStore.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.HasIndex("PromotionId");
+
+                    //b.HasIndex("PromotionId1");
 
                     b.HasIndex("UnitPrice");
 
@@ -729,9 +737,13 @@ namespace AutoPartsStore.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.HasOne("AutoPartsStore.Core.Entities.Promotion", "Promotion")
-                        .WithMany("Products")
+                        .WithMany()
                         .HasForeignKey("PromotionId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    //b.HasOne("AutoPartsStore.Core.Entities.Promotion", null)
+                    //    .WithMany("Products")
+                    //    .HasForeignKey("PromotionId1");
 
                     b.Navigation("Category");
 

@@ -7,4 +7,5 @@ namespace AutoPartsStore.Core.Models.Promotions
         [Required]
         public int PartId { get; set; }
     }
+
 }

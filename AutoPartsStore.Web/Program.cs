@@ -111,7 +111,6 @@ builder.Services.AddScoped<IDistrictService, DistrictService>();
 builder.Services.AddScoped<IAddressRepository, AddressRepository>();
 builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
-builder.Services.AddScoped<IProductPromotionRepository, ProductPromotionRepository>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
 builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
@@ -119,7 +118,7 @@ builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 
 // ﬁ—«¡… ≈⁄œ«œ«  JWT „‰ Configuration
-var jwtKey = "AutoPartsStore_Jwt_Secret_2025!@#$%^&*()_+{}:<>?|~`1234567890" ?? builder.Configuration["Jwt:Key"]
+var jwtKey =  builder.Configuration["Jwt:Key"]
              ?? throw new InvalidOperationException("JWT Key is not configured.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AutoPartsStore.Api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AutoPartsStore.Client";

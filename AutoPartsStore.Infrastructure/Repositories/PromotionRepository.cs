@@ -51,7 +51,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
                     IsActiveNow = p.IsActiveNow(),
-                    ProductCount = p.ProductPromotions.Count
+                    ProductCount = p.Products != null ? p.Products.Count : 0
                 })
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync()
@@ -78,7 +78,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
                     IsActiveNow = p.IsActiveNow(),
-                    ProductCount = p.ProductPromotions.Count
+                    ProductCount = p.Products.Count
                 })
                 .FirstOrDefaultAsync();
         }
@@ -98,23 +98,21 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     EndDate = p.EndDate,
                     IsActive = p.IsActive,
                     MinOrderAmount = p.MinOrderAmount,
-                    ProductCount = p.ProductPromotions.Count
+                    ProductCount = p.Products != null ? p.Products.Count : 0
                 })
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<ProductPromotionDto>> GetPromotionProductsAsync(int promotionId)
+        public async Task<IEnumerable<PartPromotionDto>> GetPromotionProductsAsync(int promotionId)
         {
-            return await _context.ProductPromotions
-                .Where(pp => pp.PromotionId == promotionId)
-                .Include(pp => pp.CarPart)
-                .Select(pp => new ProductPromotionDto
+            return await _context.CarParts
+                .Where(cp => cp.PromotionId == promotionId)
+                .Select(pp => new PartPromotionDto
                 {
-                    Id = pp.Id,
-                    PromotionId = pp.PromotionId,
-                    PartId = pp.PartId,
-                    PartName = pp.CarPart.PartName,
-                    PartNumber = pp.CarPart.PartNumber,
+                    PartId = pp.Id,
+                    PromotionId = pp.PromotionId!.Value,
+                    PartName = pp.PartName,
+                    PartNumber = pp.PartNumber,
                     CreatedAt = pp.CreatedAt,
                     UpdatedAt = pp.UpdatedAt
                 })
@@ -123,8 +121,8 @@ namespace AutoPartsStore.Infrastructure.Repositories
 
         public async Task<bool> PromotionHasProductAsync(int promotionId, int partId)
         {
-            return await _context.ProductPromotions
-                .AnyAsync(pp => pp.PromotionId == promotionId && pp.PartId == partId);
+            return await _context.CarParts
+                .AnyAsync(cp => cp.PromotionId == promotionId && cp.Id == partId);
         }
     }
 }

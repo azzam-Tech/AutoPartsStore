@@ -11,20 +11,17 @@ namespace AutoPartsStore.Infrastructure.Services
     public class PromotionService : IPromotionService
     {
         private readonly IPromotionRepository _promotionRepository;
-        private readonly IProductPromotionRepository _productPromotionRepository;
         private readonly IPricingService _pricingService;
         private readonly AppDbContext _context;
         private readonly ILogger<PromotionService> _logger;
 
         public PromotionService(
             IPromotionRepository promotionRepository,
-            IProductPromotionRepository productPromotionRepository,
             IPricingService pricingService,
             AppDbContext context,
             ILogger<PromotionService> logger)
         {
             _promotionRepository = promotionRepository;
-            _productPromotionRepository = productPromotionRepository;
             _pricingService = pricingService;
             _context = context;
             _logger = logger;
@@ -137,61 +134,164 @@ namespace AutoPartsStore.Infrastructure.Services
             return true;
         }
 
-        public async Task<IEnumerable<ProductPromotionDto>> GetPromotionProductsAsync(int promotionId)
+        public async Task<IEnumerable<PartPromotionDto>> GetPromotionProductsAsync(int promotionId)
         {
             return await _promotionRepository.GetPromotionProductsAsync(promotionId);
         }
 
-        public async Task<ProductPromotionDto> AddProductToPromotionAsync(int promotionId, AddProductToPromotionRequest request)
+        public async Task<BulkOperationResult> AssignPromotionToProductsAsync(int promotionId, List<int> carPartIds)
         {
-            var promotion = await _context.Promotions.FindAsync(promotionId);
+            var result = new BulkOperationResult { TotalCount = carPartIds.Count };
+
+            // التحقق من وجود العرض
+            var promotion = await _promotionRepository.GetByIdAsync(promotionId);
             if (promotion == null || promotion.IsDeleted)
-                throw new KeyNotFoundException("Promotion not found.");
-
-            var carPart = await _context.CarParts.FindAsync(request.PartId);
-            if (carPart == null || carPart.IsDeleted)
-                throw new KeyNotFoundException("Car part not found.");
-
-            if (await _promotionRepository.PromotionHasProductAsync(promotionId, request.PartId))
-                throw new InvalidOperationException("Product already added to this promotion.");
-
-            var productPromotion = new ProductPromotion(promotionId, request.PartId);
-            await _context.ProductPromotions.AddAsync(productPromotion);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Product {PartId} added to promotion {PromotionId}", request.PartId, promotionId);
-
-            await _pricingService.CalculateAndUpdateFinalPriceAsync(request.PartId);
-
-
-            return new ProductPromotionDto
             {
-                Id = productPromotion.Id,
-                PromotionId = productPromotion.PromotionId,
-                PartId = productPromotion.PartId,
-                PartName = carPart.PartName,
-                PartNumber = carPart.PartNumber,
-                CreatedAt = productPromotion.CreatedAt,
-                UpdatedAt = productPromotion.UpdatedAt
-            };
+                foreach (var carPartId in carPartIds)
+                {
+                    result.Errors.Add(new BulkOperationError
+                    {
+                        CarPartId = carPartId,
+                        ErrorMessage = "Promotion not found or deleted"
+                    });
+                }
+                result.FailedCount = carPartIds.Count;
+                return result;
+            }
+
+            foreach (var carPartId in carPartIds)
+            {
+                try
+                {
+                    var carPart = await _context.CarParts.FindAsync(carPartId);
+                    if (carPart == null || carPart.IsDeleted)
+                    {
+                        result.Errors.Add(new BulkOperationError
+                        {
+                            CarPartId = carPartId,
+                            ErrorMessage = "Car part not found or deleted"
+                        });
+                        result.FailedCount++;
+                        continue;
+                    }
+
+                    carPart.AssignPromotion(promotionId);
+                    await _pricingService.CalculateAndUpdateFinalPriceAsync(carPart , promotion);
+                    result.SuccessCount++;
+                }
+                catch (Exception ex)
+                {
+                    result.Errors.Add(new BulkOperationError
+                    {
+                        CarPartId = carPartId,
+                        ErrorMessage = ex.Message
+                    });
+                    result.FailedCount++;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return result;
         }
 
-        public async Task<bool> RemoveProductFromPromotionAsync(int promotionId, int partId)
+
+        public async Task<BulkOperationResult> RemovePromotionFromProductsAsync(List<int> carPartIds)
         {
-            var productPromotion = await _context.ProductPromotions
-                .FirstOrDefaultAsync(pp => pp.PromotionId == promotionId && pp.PartId == partId);
+            var result = new BulkOperationResult { TotalCount = carPartIds.Count };
 
-            if (productPromotion == null)
-                throw new KeyNotFoundException("Product not found in this promotion.");
+            foreach (var carPartId in carPartIds)
+            {
+                try
+                {
+                    var carPart = await _context.CarParts.FindAsync(carPartId);
+                    if (carPart == null || carPart.IsDeleted)
+                    {
+                        result.Errors.Add(new BulkOperationError
+                        {
+                            CarPartId = carPartId,
+                            ErrorMessage = "Car part not found or deleted"
+                        });
+                        result.FailedCount++;
+                        continue;
+                    }
 
-            _context.ProductPromotions.Remove(productPromotion);
+                    carPart.AssignPromotion(null);
+                    await _pricingService.CalculateAndUpdateFinalPriceAsync(carPart, null);
+                    result.SuccessCount++;
+                }
+                catch (Exception ex)
+                {
+                    result.Errors.Add(new BulkOperationError
+                    {
+                        CarPartId = carPartId,
+                        ErrorMessage = ex.Message
+                    });
+                    result.FailedCount++;
+                }
+            }
+
             await _context.SaveChangesAsync();
+            return result;
+        }
 
-            _logger.LogInformation("Product {PartId} removed from promotion {PromotionId}", partId, promotionId);
-            await _pricingService.CalculateAndUpdateFinalPriceAsync(partId);
+        public async Task<BulkOperationResult> ReplacePromotionForProductsAsync(int? newPromotionId, List<int> carPartIds)
+        {
+            var result = new BulkOperationResult { TotalCount = carPartIds.Count };
+            var promotion2 = await _promotionRepository.GetByIdAsync(newPromotionId.Value);
 
-            return true;
 
+            // التحقق من العرض الجديد إذا كان غير null
+            if (newPromotionId.HasValue)
+            {
+                var promotion = await _promotionRepository.GetByIdAsync(newPromotionId.Value);
+                if (promotion == null || promotion.IsDeleted)
+                {
+                    foreach (var carPartId in carPartIds)
+                    {
+                        result.Errors.Add(new BulkOperationError
+                        {
+                            CarPartId = carPartId,
+                            ErrorMessage = "New promotion not found or deleted"
+                        });
+                    }
+                    result.FailedCount = carPartIds.Count;
+                    return result;
+                }
+            }
+
+            foreach (var carPartId in carPartIds)
+            {
+                try
+                {
+                    var carPart = await _context.CarParts.FindAsync(carPartId);
+                    if (carPart == null || carPart.IsDeleted)
+                    {
+                        result.Errors.Add(new BulkOperationError
+                        {
+                            CarPartId = carPartId,
+                            ErrorMessage = "Car part not found or deleted"
+                        });
+                        result.FailedCount++;
+                        continue;
+                    }
+
+                    carPart.AssignPromotion(newPromotionId);
+                    await _pricingService.CalculateAndUpdateFinalPriceAsync(carPart , promotion2);
+                    result.SuccessCount++;
+                }
+                catch (Exception ex)
+                {
+                    result.Errors.Add(new BulkOperationError
+                    {
+                        CarPartId = carPartId,
+                        ErrorMessage = ex.Message
+                    });
+                    result.FailedCount++;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return result;
         }
 
         public async Task<bool> DeactivateAsync(int id)

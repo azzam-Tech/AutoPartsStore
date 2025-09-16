@@ -4,200 +4,141 @@ using AutoPartsStore.Core.Models.Promotions;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualBasic;
 
 namespace AutoPartsStore.Infrastructure.Services
 {
     public class PricingService : IPricingService
     {
         private readonly AppDbContext _context;
-        private readonly IProductPromotionRepository _productPromotionRepo;
         private readonly IPromotionRepository _promotionRepository;
         private readonly ILogger<PricingService> _logger;
 
         public PricingService(
             AppDbContext context,
-            IProductPromotionRepository productPromotionRepo,
             IPromotionRepository promotionRepository,
             ILogger<PricingService> logger)
         {
             _context = context;
-            _productPromotionRepo = productPromotionRepo;
             _promotionRepository = promotionRepository;
             _logger = logger;
         }
 
-        public async Task CalculateAndUpdateFinalPriceAsync(int carPartId)
+        public async Task CalculateAndUpdateFinalPriceAsync(CarPart carPart, Promotion? promotion)
         {
             try
             {
-                var carPart = await _context.CarParts
-                    .FirstOrDefaultAsync(p => p.Id == carPartId && !p.IsDeleted);
-
-                if (carPart == null)
-                {
-                    _logger.LogWarning("Car part with ID {CarPartId} not found or deleted", carPartId);
-                    return;
-                }
-
-                // الحصول على أفضل عرض فعال للمنتج
-                var bestPromotion = await GetBestActivePromotionForProductAsync(carPartId);
-
-                decimal finalPrice;
-
+                decimal finalPrice = 0;
+                
                 if (carPart.DiscountPercent > 0)
                 {
                     // الأولوية للخصم الخاص بالمنتج
                     finalPrice = carPart.UnitPrice * (1 - carPart.DiscountPercent / 100);
                     _logger.LogInformation("Using product discount for part {PartId}: {Discount}%",
-                        carPartId, carPart.DiscountPercent);
+                        carPart.Id, carPart.DiscountPercent);
                 }
-                else if (bestPromotion != null)
+                else if (promotion == null)
                 {
-                    // تطبيق عرض التخفيض العام
-                    finalPrice = bestPromotion.Value;
-                    _logger.LogInformation("Using promotion for part {PartId}: {PromotionValue}",
-                        carPartId, bestPromotion.Value);
+                    if (carPart.DiscountPercent > 0)
+                    {
+                        // الأولوية للخصم الخاص بالمنتج
+                        finalPrice = carPart.UnitPrice * (1 - carPart.DiscountPercent / 100);
+                        _logger.LogInformation("Using product discount for part {PartId}: {Discount}%",
+                            carPart.Id, carPart.DiscountPercent);
+                    }
+                    else
+                    {
+                        finalPrice = carPart.UnitPrice;
+                    }
                 }
                 else
                 {
-                    // لا يوجد عروض
-                    finalPrice = carPart.UnitPrice;
-                    _logger.LogInformation("No discounts applied for part {PartId}", carPartId);
+                    finalPrice = CalculatePriceWithPromotion(carPart.UnitPrice, promotion);
+                    carPart.UpdateFinalPrice(finalPrice);
+                    _logger.LogInformation("Using promotion for part {PartId}: {PromotionValue}",
+                              carPart.Id, finalPrice);
                 }
 
                 carPart.UpdateFinalPrice(finalPrice);
+
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Final price updated for part {PartId}: {FinalPrice}",
-                    carPartId, finalPrice);
+                    carPart.Id, finalPrice);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error calculating final price for part {CarPartId}", carPartId);
+                _logger.LogError(ex, "Error calculating final price for part {CarPartId}",carPart.Id);
                 throw;
             }
         }
 
-        public async Task RecalculateAllPricesAsync()
-        {
-            try
-            {
-                var carPartIds = await _context.CarParts
-                    .Where(p => !p.IsDeleted)
-                    .Select(p => p.Id)
-                    .ToListAsync();
+        //public async Task RecalculateAllPricesAsync()
+        //{
+        //    try
+        //    {
+        //        var carPartIds = await _context.CarParts
+        //            .Where(p => !p.IsDeleted)
+        //            .Select(p => p.Id)
+        //            .ToListAsync();
 
-                foreach (var partId in carPartIds)
-                {
-                    await CalculateAndUpdateFinalPriceAsync(partId);
-                }
+        //        foreach (var partId in carPartIds)
+        //        {
+        //            await CalculateAndUpdateFinalPriceAsync(partId);
+        //        }
 
-                _logger.LogInformation("Recalculated prices for {Count} car parts", carPartIds.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error recalculating all prices");
-                throw;
-            }
-        }
+        //        _logger.LogInformation("Recalculated prices for {Count} car parts", carPartIds.Count);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error recalculating all prices");
+        //        throw;
+        //    }
+        //}
 
-        public async Task ApplyPromotionToProductAsync(int promotionId, int carPartId)
-        {
-            try
-            {
-                // التحقق من وجود العرض والمنتج
-                var promotion = await _promotionRepository.GetByIdAsync(promotionId);
-                var carPart = await _context.CarParts.FindAsync(carPartId);
+        //public async Task ApplyPromotionToProductAsync(int promotionId, int carPartId)
+        //{
+        //    try
+        //    {
+        //        // التحقق من وجود العرض والمنتج
+        //        var promotion = await _promotionRepository.GetByIdAsync(promotionId);
+        //        var carPart = await _context.CarParts.FindAsync(carPartId);
 
-                if (promotion == null || promotion.IsDeleted)
-                    throw new ArgumentException("Promotion not found or deleted");
+        //        if (promotion == null || promotion.IsDeleted)
+        //            throw new ArgumentException("Promotion not found or deleted");
 
-                if (carPart == null || carPart.IsDeleted)
-                    throw new ArgumentException("Car part not found or deleted");
+        //        if (carPart == null || carPart.IsDeleted)
+        //            throw new ArgumentException("Car part not found or deleted");
 
-                await CalculateAndUpdateFinalPriceAsync(carPartId);
-                _logger.LogInformation("Applied promotion {PromotionId} to product {PartId}",
-                    promotionId, carPartId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error applying promotion {PromotionId} to product {PartId}",
-                    promotionId, carPartId);
-                throw;
-            }
-        }
+        //        await CalculateAndUpdateFinalPriceAsync(carPartId);
+        //        _logger.LogInformation("Applied promotion {PromotionId} to product {PartId}",
+        //            promotionId, carPartId);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error applying promotion {PromotionId} to product {PartId}",
+        //            promotionId, carPartId);
+        //        throw;
+        //    }
+        //}
 
-        public async Task RemovePromotionFromProductAsync(int carPartId)
-        {
-            try
-            {
-                await CalculateAndUpdateFinalPriceAsync(carPartId);
-                _logger.LogInformation("Removed promotions from product {PartId}", carPartId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error removing promotions from product {PartId}", carPartId);
-                throw;
-            }
-        }
+        //public async Task RemovePromotionFromProductAsync(int carPartId)
+        //{
+        //    try
+        //    {
+        //        await CalculateAndUpdateFinalPriceAsync(carPartId);
+        //        _logger.LogInformation("Removed promotions from product {PartId}", carPartId);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error removing promotions from product {PartId}", carPartId);
+        //        throw;
+        //    }
+        //}
 
-        public async Task<decimal?> GetBestActivePromotionForProductAsync(int carPartId)
-        {
-            try
-            {
-                var part = await _context.CarParts.FindAsync(carPartId);
-                // جلب جميع العروض النشطة المرتبطة بهذه القطعة
-                var promotionsId = await _context.ProductPromotions
-                    .Where(pp => pp.PartId == carPartId)
-                    .Select(pp => pp.PromotionId)
-                    //.Where(p => p.IsActive && !p.IsDeleted && p.IsActiveNow())
-                    .ToListAsync();
-                var activePromotions = (await _context.Promotions
-                    .Where(p => promotionsId.Contains(p.Id) && p.IsActive && !p.IsDeleted)
-                    .ToListAsync())
-                    .Where(p => p.IsActiveNow())
-                    .ToList();
 
-                decimal? finalPrice = null; // السعر الأصلي هو الأساس
 
-                // إذا وجدت عروض، نحسب السعر النهائي لكل واحد ونختار الأفضل (الأقل سعرًا)
-                if (activePromotions.Any())
-                {
-                    var bestPrice = part.UnitPrice; // نبدأ بالسعر الأصلي
-
-                    foreach (var promo in activePromotions)
-                    {
-                        decimal priceAfterPromo = part.UnitPrice;
-
-                        if (promo.DiscountType == DiscountType.Percent)
-                        {
-                            priceAfterPromo = part.UnitPrice * (1 - promo.DiscountValue / 100);
-                        }
-                        else if (promo.DiscountType == DiscountType.Fixed)
-                        {
-                            priceAfterPromo = Math.Max(0, part.UnitPrice - promo.DiscountValue);
-                        }
-
-                        // نختار السعر الأقل (الأفضل للمستخدم)
-                        if (priceAfterPromo < bestPrice)
-                        {
-                            bestPrice = priceAfterPromo;
-                        }
-                    }
-
-                    finalPrice = bestPrice;
-                }
-
-                return finalPrice;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting best promotion for product {PartId}", carPartId);
-                return null;
-            }
-        }
-
-        private decimal CalculatePriceWithPromotion(decimal unitPrice, PromotionDto promotion)
+        private decimal CalculatePriceWithPromotion(decimal unitPrice, Promotion promotion)
         {
             if (promotion.DiscountType == DiscountType.Percent)
             {

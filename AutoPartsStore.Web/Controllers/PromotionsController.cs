@@ -143,11 +143,11 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpPost("{promotionId}/products")]
-        public async Task<IActionResult> AddProductToPromotion(int promotionId, [FromBody] AddProductToPromotionRequest request)
+        public async Task<IActionResult> AddProductToPromotion(int promotionId, List<int> ProductIds)
         {
             try
             {
-                var result = await _promotionService.AddProductToPromotionAsync(promotionId, request);
+                var result = await _promotionService.AssignPromotionToProductsAsync(promotionId, ProductIds);
                 return Success(result, "Product added to promotion successfully");
             }
             catch (Exception ex)
@@ -156,18 +156,35 @@ namespace AutoPartsStore.Web.Controllers
             }
         }
 
-        [HttpDelete("{promotionId}/products/{partId}")]
-        public async Task<IActionResult> RemoveProductFromPromotion(int promotionId, int partId)
+        [HttpDelete("{promotionId}/products")]
+        public async Task<IActionResult> RemoveProductFromPromotion(List<int> ProductIds)
         {
             try
             {
-                await _promotionService.RemoveProductFromPromotionAsync(promotionId, partId);
+                await _promotionService.RemovePromotionFromProductsAsync(ProductIds);
                 return Success("Product removed from promotion successfully");
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        [HttpPut("products/bulk/replace")]
+        public async Task<IActionResult> ReplacePromotionForProducts(
+            [FromQuery] int? newPromotionId,
+            [FromBody] List<int> carPartIds)
+        {
+            if (carPartIds == null || !carPartIds.Any())
+                return BadRequest("No car parts specified");
+
+            var result = await _promotionService.ReplacePromotionForProductsAsync(newPromotionId, carPartIds);
+
+            var message = newPromotionId.HasValue
+                ? $"Replaced promotion for {result.SuccessCount} products"
+                : $"Removed promotion from {result.SuccessCount} products";
+
+            return Success(result, message);
         }
     }
 }

@@ -9,7 +9,7 @@ namespace AutoPartsStore.Core.Interfaces
         Task<PagedResult<PromotionDto>> GetAllWithDetailsAsync(PromotionFilter filter);
         Task<PromotionDto> GetByIdWithDetailsAsync(int id);
         Task<IEnumerable<PromotionDto>> GetActivePromotionsAsync();
-        Task<IEnumerable<ProductPromotionDto>> GetPromotionProductsAsync(int promotionId);
+        Task<IEnumerable<PartPromotionDto>> GetPromotionProductsAsync(int promotionId);
         Task<bool> PromotionHasProductAsync(int promotionId, int partId);
     }
 }

@@ -5,10 +5,9 @@ namespace AutoPartsStore.Core.Interfaces
 {
     public interface IPricingService
     {
-        Task CalculateAndUpdateFinalPriceAsync(int carPartId);
-        Task RecalculateAllPricesAsync();
-        Task ApplyPromotionToProductAsync(int promotionId, int carPartId);
-        Task RemovePromotionFromProductAsync(int carPartId);
-        Task<decimal?> GetBestActivePromotionForProductAsync(int carPartId);
+        Task CalculateAndUpdateFinalPriceAsync(CarPart carPart, Promotion? promotion);
+        //Task RecalculateAllPricesAsync();
+        //Task ApplyPromotionToProductAsync(int promotionId, int carPartId);
+        //Task RemovePromotionFromProductAsync(int carPartId);
     }
 }

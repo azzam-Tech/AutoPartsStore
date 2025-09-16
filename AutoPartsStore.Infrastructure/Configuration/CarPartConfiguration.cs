@@ -73,6 +73,11 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .HasForeignKey(p => p.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(p => p.Promotion)
+                .WithMany(c => c.Products)
+                .HasForeignKey(p => p.PromotionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // Indexes
             builder.HasIndex(p => p.PartNumber).IsUnique();
             builder.HasIndex(p => p.PartName);

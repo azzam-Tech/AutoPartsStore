@@ -11,6 +11,8 @@ namespace AutoPartsStore.Core.Entities
         public string PartNumber { get; private set; }
 
         public int CategoryId { get; private set; }
+        public int? PromotionId { get; private set; } // العلاقة الجديدة
+
 
         [Required]
         [MaxLength(200)]
@@ -52,17 +54,19 @@ namespace AutoPartsStore.Core.Entities
         // Relationships
         public PartCategory Category { get; private set; }
         public List<PartSupply> Supplies { get; private set; } = new();
-        public List<ProductPromotion> ProductPromotions { get; private set; } = new();
         public List<CartItem> CartItems { get; private set; } = new();
         public List<ProductReview> Reviews { get; private set; } = new();
         public List<InventoryLog> InventoryLogs { get; private set; } = new();
+        public Promotion? Promotion { get; private set; }
+
 
         public CarPart(
             string partNumber, int categoryId, string partName,
             decimal unitPrice, int stockQuantity,
             string? description = null, string? carBrand = null,
             string? carModel = null, string? carYear = null,
-            decimal discountPercent = 0, string? imageUrl = null)
+            decimal discountPercent = 0, string? imageUrl = null,
+            int? promotionId = null)
         {
             PartNumber = partNumber;
             CategoryId = categoryId;
@@ -78,6 +82,8 @@ namespace AutoPartsStore.Core.Entities
             IsActive = true;
             CreatedAt = DateTime.UtcNow;
             IsDeleted = false;
+            PromotionId = promotionId;
+
         }
 
         // Methods
@@ -180,7 +186,10 @@ namespace AutoPartsStore.Core.Entities
 
         public decimal GetFinalPrice()
         {
-            return UnitPrice * (1 - DiscountPercent / 100);
+            if (DiscountPercent > 0)
+                return UnitPrice * (1 - DiscountPercent / 100);
+            else
+                return FinalPrice;
         }
 
         public void UpdateFinalPrice(decimal finalPrice)
@@ -189,6 +198,17 @@ namespace AutoPartsStore.Core.Entities
                 throw new ArgumentException("Final price cannot be negative");
 
             FinalPrice = finalPrice;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void AssignPromotion(int? promotionId)
+        {
+            PromotionId = promotionId;
+            UpdatedAt = DateTime.UtcNow;
+        }
+        public void RemovePromotion()
+        {
+            PromotionId = null;
             UpdatedAt = DateTime.UtcNow;
         }
 

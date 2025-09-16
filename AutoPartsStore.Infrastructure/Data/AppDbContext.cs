@@ -27,7 +27,6 @@ namespace AutoPartsStore.Infrastructure.Data
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<PartSupply> PartSupplies { get; set; }
         public DbSet<Promotion> Promotions { get; set; }
-        public DbSet<ProductPromotion> ProductPromotions { get; set; }
         public DbSet<ShoppingCart> ShoppingCarts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<ProductReview> ProductReviews { get; set; }
