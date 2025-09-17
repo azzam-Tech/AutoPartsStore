@@ -53,10 +53,18 @@ namespace AutoPartsStore.Infrastructure.Services
                 }
                 else
                 {
-                    finalPrice = CalculatePriceWithPromotion(carPart.UnitPrice, promotion);
-                    carPart.UpdateFinalPrice(finalPrice);
-                    _logger.LogInformation("Using promotion for part {PartId}: {PromotionValue}",
-                              carPart.Id, finalPrice);
+                    if(promotion.IsActive || promotion.IsActiveNow())
+                    {
+                        finalPrice = CalculatePriceWithPromotion(carPart.UnitPrice, promotion);
+                        carPart.UpdateFinalPrice(finalPrice);
+                        _logger.LogInformation("Using promotion for part {PartId}: {PromotionValue}",
+                                  carPart.Id, finalPrice);
+                    }
+                    else
+                    {
+                        finalPrice = carPart.UnitPrice;
+                    }
+
                 }
 
                 carPart.UpdateFinalPrice(finalPrice);

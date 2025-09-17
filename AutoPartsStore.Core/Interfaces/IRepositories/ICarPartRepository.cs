@@ -12,5 +12,7 @@ namespace AutoPartsStore.Core.Interfaces
         Task<bool> PartNumberExistsAsync(string partNumber, int? excludeId = null);
         Task<int> GetTotalCountAsync(CarPartFilter filter);
         Task<decimal> GetMaxPriceAsync();
+        Task<List<CarPart>> GetPartsByPromotionIdAsync(int promotionId);
+
     }
 }

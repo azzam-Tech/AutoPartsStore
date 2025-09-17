@@ -11,5 +11,7 @@ namespace AutoPartsStore.Core.Interfaces
         Task<IEnumerable<PromotionDto>> GetActivePromotionsAsync();
         Task<IEnumerable<PartPromotionDto>> GetPromotionProductsAsync(int promotionId);
         Task<bool> PromotionHasProductAsync(int promotionId, int partId);
+        Task<List<Promotion>> GetExpiredActivePromotionsAsync();
+
     }
 }

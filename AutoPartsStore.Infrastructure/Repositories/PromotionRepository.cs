@@ -124,5 +124,12 @@ namespace AutoPartsStore.Infrastructure.Repositories
             return await _context.CarParts
                 .AnyAsync(cp => cp.PromotionId == promotionId && cp.Id == partId);
         }
+
+        public async Task<List<Promotion>> GetExpiredActivePromotionsAsync()
+        {
+            return await _context.Promotions
+                .Where(p => p.IsActive && p.EndDate < DateTime.UtcNow)
+                .ToListAsync();
+        }
     }
 }

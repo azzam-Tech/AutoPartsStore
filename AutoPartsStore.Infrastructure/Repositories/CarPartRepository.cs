@@ -227,5 +227,12 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 .Where(p => !p.IsDeleted && p.IsActive)
                 .MaxAsync(p => p.UnitPrice);
         }
+
+        public async Task<List<CarPart>> GetPartsByPromotionIdAsync(int promotionId)
+        {
+            return await _context.CarParts
+                .Where(cp => cp.PromotionId == promotionId)
+                .ToListAsync();
+        }
     }
 }
