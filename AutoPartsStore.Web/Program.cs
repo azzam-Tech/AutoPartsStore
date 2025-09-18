@@ -1,4 +1,6 @@
 using AutoPartsStore.Core.Interfaces;
+using AutoPartsStore.Core.Interfaces.IRepositories;
+using AutoPartsStore.Core.Interfaces.IServices;
 using AutoPartsStore.Infrastructure.Data;
 using AutoPartsStore.Infrastructure.Repositories;
 using AutoPartsStore.Infrastructure.Services;
@@ -118,6 +120,8 @@ builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
+builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
+builder.Services.AddScoped<IFavoriteService, FavoriteService>();
 
 // чягаи езогогй JWT ЦД Configuration
 var jwtKey =  builder.Configuration["Jwt:Key"]

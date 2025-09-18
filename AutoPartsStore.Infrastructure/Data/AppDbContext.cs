@@ -32,6 +32,7 @@ namespace AutoPartsStore.Infrastructure.Data
         public DbSet<ProductReview> ProductReviews { get; set; }
         public DbSet<InventoryLog> InventoryLogs { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
+        public DbSet<Favorite> Favorites { get; set; }
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

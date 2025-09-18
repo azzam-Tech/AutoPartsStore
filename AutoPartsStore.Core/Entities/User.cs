@@ -29,6 +29,8 @@ namespace AutoPartsStore.Core.Entities
         public List<Address> Addresses { get; private set; } = new();
         public ShoppingCart? ShoppingCart { get; private set; }
         public List<ProductReview> Reviews { get; private set; } = new();
+        public List<Favorite> Favorites { get; private set; } = new();
+
 
         // Constructor
         public User(string username, string passwordHash, string email, string fullName, string phoneNumber)

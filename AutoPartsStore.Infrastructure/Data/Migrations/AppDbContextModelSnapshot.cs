@@ -242,6 +242,33 @@ namespace AutoPartsStore.Infrastructure.Data.Migrations
                     b.ToTable("Districts", (string)null);
                 });
 
+            modelBuilder.Entity("AutoPartsStore.Core.Entities.Favorite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AddedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PartId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PartId");
+
+                    b.HasIndex("UserId", "PartId")
+                        .IsUnique();
+
+                    b.ToTable("Favorites", (string)null);
+                });
+
             modelBuilder.Entity("AutoPartsStore.Core.Entities.InventoryLog", b =>
                 {
                     b.Property<int>("Id")
@@ -766,6 +793,25 @@ namespace AutoPartsStore.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("City");
+                });
+
+            modelBuilder.Entity("AutoPartsStore.Core.Entities.Favorite", b =>
+                {
+                    b.HasOne("AutoPartsStore.Core.Entities.CarPart", "CarPart")
+                        .WithMany()
+                        .HasForeignKey("PartId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AutoPartsStore.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CarPart");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("AutoPartsStore.Core.Entities.InventoryLog", b =>
