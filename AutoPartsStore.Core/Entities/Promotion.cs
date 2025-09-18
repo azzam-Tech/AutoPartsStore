@@ -18,7 +18,7 @@
 
 
         // Relationship
-        public List<CarPart>? Products { get; private set; } = null;
+        public List<CarPart>? CarParts { get; private set; } = null;
 
         public Promotion(
             string promotionName, DiscountType discountType, decimal discountValue,

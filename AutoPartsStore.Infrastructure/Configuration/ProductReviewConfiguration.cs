@@ -38,13 +38,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasIndex(pr => new { pr.PartId, pr.UserId }).IsUnique();
         }
     }
-
-
-
-
-
-
-
-
-
 }

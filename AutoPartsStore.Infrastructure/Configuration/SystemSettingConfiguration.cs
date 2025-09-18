@@ -30,13 +30,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasIndex(ss => ss.SettingKey).IsUnique();
         }
     }
-
-
-
-
-
-
-
-
-
 }

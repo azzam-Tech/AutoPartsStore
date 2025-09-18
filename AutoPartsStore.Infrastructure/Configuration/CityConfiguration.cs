@@ -17,13 +17,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .HasMaxLength(100);
         }
     }
-
-
-
-
-
-
-
-
-
 }

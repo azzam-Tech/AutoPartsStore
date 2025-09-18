@@ -38,13 +38,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasIndex(a => a.PostalCode);
         }
     }
-
-
-
-
-
-
-
-
-
 }

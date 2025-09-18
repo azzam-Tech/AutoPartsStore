@@ -24,13 +24,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .IsRequired();
         }
     }
-
-
-
-
-
-
-
-
-
 }

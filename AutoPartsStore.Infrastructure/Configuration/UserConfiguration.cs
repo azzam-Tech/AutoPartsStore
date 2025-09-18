@@ -60,13 +60,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasIndex(u => u.Email).IsUnique();
         }
     }
-
-
-
-
-
-
-
-
-
 }

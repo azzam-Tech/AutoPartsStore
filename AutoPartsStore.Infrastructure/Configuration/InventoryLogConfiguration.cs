@@ -45,13 +45,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .HasMaxLength(500);
         }
     }
-
-
-
-
-
-
-
-
-
 }

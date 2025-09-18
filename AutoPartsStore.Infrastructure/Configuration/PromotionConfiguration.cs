@@ -48,13 +48,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .HasColumnType("DECIMAL(10,2)");
         }
     }
-
-
-
-
-
-
-
-
-
 }

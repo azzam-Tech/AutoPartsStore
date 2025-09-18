@@ -51,7 +51,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
                     IsActiveNow = p.IsActiveNow(),
-                    ProductCount = p.Products != null ? p.Products.Count : 0
+                    ProductCount = p.CarParts != null ? p.CarParts.Count : 0
                 })
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync()
@@ -78,7 +78,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
                     IsActiveNow = p.IsActiveNow(),
-                    ProductCount = p.Products.Count
+                    ProductCount = p.CarParts.Count
                 })
                 .FirstOrDefaultAsync();
         }
@@ -98,7 +98,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     EndDate = p.EndDate,
                     IsActive = p.IsActive,
                     MinOrderAmount = p.MinOrderAmount,
-                    ProductCount = p.Products != null ? p.Products.Count : 0
+                    ProductCount = p.CarParts != null ? p.CarParts.Count : 0
                 })
                 .ToListAsync();
         }

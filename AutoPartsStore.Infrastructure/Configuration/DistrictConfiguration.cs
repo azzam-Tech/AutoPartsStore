@@ -24,13 +24,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasIndex(d => new { d.CityId, d.DistrictName }).IsUnique();
         }
     }
-
-
-
-
-
-
-
-
-
 }

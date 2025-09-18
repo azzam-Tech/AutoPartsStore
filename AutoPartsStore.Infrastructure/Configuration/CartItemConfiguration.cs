@@ -32,13 +32,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasIndex(ci => new { ci.CartId, ci.PartId }).IsUnique();
         }
     }
-
-
-
-
-
-
-
-
-
 }

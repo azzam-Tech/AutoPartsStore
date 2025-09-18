@@ -24,8 +24,4 @@
     <ProjectReference Include="..\AutoPartsStore.Core\AutoPartsStore.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Data\Migrations\" />
-  </ItemGroup>
-
 </Project>

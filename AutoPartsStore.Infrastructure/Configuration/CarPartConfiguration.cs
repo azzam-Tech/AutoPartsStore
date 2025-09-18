@@ -74,7 +74,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(p => p.Promotion)
-                .WithMany(c => c.Products)
+                .WithMany(c => c.CarParts)
                 .HasForeignKey(p => p.PromotionId)
                 .OnDelete(DeleteBehavior.SetNull);
 
@@ -90,13 +90,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasIndex(p => new { p.IsActive, p.IsDeleted });
         }
     }
-
-
-
-
-
-
-
-
-
 }

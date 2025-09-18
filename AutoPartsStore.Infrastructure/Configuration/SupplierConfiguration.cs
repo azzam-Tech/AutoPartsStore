@@ -40,13 +40,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
                    .HasDefaultValue(false);
         }
     }
-
-
-
-
-
-
-
-
-
 }
