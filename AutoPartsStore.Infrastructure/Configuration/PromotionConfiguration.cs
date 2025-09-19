@@ -36,7 +36,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
 
             builder.Property(p => p.IsActive)
                 .IsRequired()
-                .HasDefaultValue(true);
+                .HasDefaultValue(false);
 
             builder.Property(p => p.CreatedAt)
                 .IsRequired();

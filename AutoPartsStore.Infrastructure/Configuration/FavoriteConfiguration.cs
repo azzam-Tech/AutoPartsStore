@@ -13,7 +13,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasKey(f => f.Id);
 
             builder.HasOne(f => f.User)
-                .WithMany()
+                .WithMany(f => f.Favorites)
                 .HasForeignKey(f => f.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 

@@ -32,7 +32,7 @@
             EndDate = endDate;
             MinOrderAmount = minOrderAmount;
             Description = description;
-            IsActive = true;
+            IsActive = false;
             CreatedAt = DateTime.UtcNow;
 
             Validate();
