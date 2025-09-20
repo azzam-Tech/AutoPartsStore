@@ -46,6 +46,9 @@ namespace AutoPartsStore.Web.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CreateDistrictRequest request)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             try
             {
                 var district = await _districtService.CreateAsync(request);

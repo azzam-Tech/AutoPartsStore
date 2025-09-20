@@ -4,6 +4,7 @@ using AutoPartsStore.Core.Interfaces.IServices;
 using AutoPartsStore.Infrastructure.Data;
 using AutoPartsStore.Infrastructure.Repositories;
 using AutoPartsStore.Infrastructure.Services;
+using AutoPartsStore.Web.Extensions;
 using AutoPartsStore.Web.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -122,6 +123,8 @@ builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
 builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
 builder.Services.AddScoped<IFavoriteService, FavoriteService>();
+builder.Services.AddRateLimiting(builder.Configuration);
+
 
 // ﬁ—«¡… ≈⁄œ«œ«  JWT „‰ Configuration
 var jwtKey =  builder.Configuration["Jwt:Key"]
@@ -166,6 +169,8 @@ app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiting();
+
 // ›Ì Program.cs° ﬁ»· app.MapControllers();
 app.UseAdminCheck();
 app.MapControllers();
