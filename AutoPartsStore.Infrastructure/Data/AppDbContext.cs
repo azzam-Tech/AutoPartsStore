@@ -1,11 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
-using AutoPartsStore.Core.Entities;
+﻿using AutoPartsStore.Core.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace AutoPartsStore.Infrastructure.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+        protected readonly IConfiguration Configuration;
+
+        public AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration configuration) : base(options)
+        {
+            Configuration = configuration;
+        }
+
+
 
         // DbSets
         public DbSet<User> Users { get; set; }
@@ -19,13 +27,22 @@ namespace AutoPartsStore.Infrastructure.Data
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<PartSupply> PartSupplies { get; set; }
         public DbSet<Promotion> Promotions { get; set; }
-        public DbSet<ProductPromotion> ProductPromotions { get; set; }
         public DbSet<ShoppingCart> ShoppingCarts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<ProductReview> ProductReviews { get; set; }
         public DbSet<InventoryLog> InventoryLogs { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
+        public DbSet<Favorite> Favorites { get; set; }
 
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                // للتطوير فقط - لا تستخدم في Production
+                optionsBuilder.UseSqlServer("Data Source=SQL8010.site4now.net;DataBase=db_abdf41_autopartstore;User Id=db_abdf41_autopartstore_admin;Password=3e%P@8BtY_j7PO88G;");
+            }
+        }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

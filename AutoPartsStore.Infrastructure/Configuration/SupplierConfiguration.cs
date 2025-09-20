@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("Suppliers");
             builder.HasKey(s => s.Id);
-            builder.Property(s => s.Id).HasColumnName("SupplierID");
+            builder.Property(s => s.Id);
 
             builder.Property(s => s.SupplierName)
                 .IsRequired()
@@ -34,15 +34,10 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.Property(s => s.IsActive)
                 .IsRequired()
                 .HasDefaultValue(true);
+            builder.Property(e => e.DeletedAt);
+
+            builder.Property(e => e.IsDeleted)
+                   .HasDefaultValue(false);
         }
     }
-
-
-
-
-
-
-
-
-
 }

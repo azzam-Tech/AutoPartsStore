@@ -1,9 +1,11 @@
 ﻿using AutoPartsStore.Core.Interfaces;
+using AutoPartsStore.Core.Models;
+using AutoPartsStore.Web.Controllers;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController : ControllerBase
+public class AuthController : BaseController
 {
     private readonly IAuthService _authService;
 
@@ -23,9 +25,9 @@ public class AuthController : ControllerBase
             request.Password);
 
         if (!result.Success)
-            return BadRequest(new { Message = result.Message });
+            return BadRequest(result.Message);
 
-        return Ok(new { Message = result.Message });
+        return Success(result.Message);
     }
 
     [HttpPost("login")]
@@ -33,21 +35,23 @@ public class AuthController : ControllerBase
     {
         var isValid = await _authService.ValidateCredentialsAsync(request.Username, request.Password);
         if (!isValid)
-            return Unauthorized(new { Message = "بيانات الدخول غير صحيحة." });
+            return Unauthorized("بيانات الدخول غير صحيحة.");
 
         var tokenResult = await _authService.GenerateJwtTokenAsync(request.Username);
         if (!tokenResult.Success)
-            return BadRequest(new { Message = tokenResult.Message });
+            return BadRequest(tokenResult.Message);
 
-        return Ok(new
+        // إرجاع كائن موحد يحتوي على كل شيء
+        return Success(new
         {
-            AccessToken = tokenResult.AccessToken,
-            ExpiresAt = tokenResult.ExpiresAt
-        });
+            accessToken = tokenResult.AccessToken, 
+            expiresAt = tokenResult.ExpiresAt,     
+            userInfo = tokenResult.UserInfo        
+        }, tokenResult.Message);
     }
 }
 
-// Requests
+// نماذج Request
 public class RegisterRequest
 {
     public string Username { get; set; }

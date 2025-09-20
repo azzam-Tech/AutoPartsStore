@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("CarParts");
             builder.HasKey(p => p.Id);
-            builder.Property(p => p.Id).HasColumnName("PartID");
+            builder.Property(p => p.Id);
 
             builder.Property(p => p.PartNumber)
                 .IsRequired()
@@ -37,6 +37,11 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .IsRequired()
                 .HasColumnType("DECIMAL(10,2)");
 
+            builder.Property(p => p.FinalPrice)
+                .IsRequired()
+                .HasColumnType("DECIMAL(10,2)")
+                .HasDefaultValue(0);
+
             builder.Property(p => p.DiscountPercent)
                 .HasDefaultValue(0)
                 .HasColumnType("DECIMAL(5,2)");
@@ -49,32 +54,40 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .IsRequired()
                 .HasDefaultValue(true);
 
-            builder.Property(p => p.DateAdded)
+            builder.Property(p => p.CreatedAt)
                 .IsRequired();
 
-            builder.Property(p => p.LastUpdated)
-                .IsRequired();
+            builder.Property(p => p.UpdatedAt);
 
             builder.Property(p => p.ImageUrl)
                 .HasColumnName("ImageURL")
                 .HasMaxLength(255);
+            builder.Property(e => e.DeletedAt);
+
+            builder.Property(e => e.IsDeleted)
+                   .HasDefaultValue(false);
 
             // Relationships
             builder.HasOne(p => p.Category)
                 .WithMany(c => c.CarParts)
                 .HasForeignKey(p => p.CategoryId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(p => p.Promotion)
+                .WithMany(c => c.CarParts)
+                .HasForeignKey(p => p.PromotionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
             builder.HasIndex(p => p.PartNumber).IsUnique();
+            builder.HasIndex(p => p.PartName);
+            builder.HasIndex(p => p.CategoryId);
+            builder.HasIndex(p => p.CarBrand);
+            builder.HasIndex(p => p.CarModel);
+            builder.HasIndex(p => p.IsActive);
+            builder.HasIndex(p => p.IsDeleted);
+            builder.HasIndex(p => p.UnitPrice);
+            builder.HasIndex(p => new { p.IsActive, p.IsDeleted });
         }
     }
-
-
-
-
-
-
-
-
-
 }

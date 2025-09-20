@@ -1,9 +1,14 @@
 using AutoPartsStore.Core.Interfaces;
+using AutoPartsStore.Core.Interfaces.IRepositories;
+using AutoPartsStore.Core.Interfaces.IServices;
 using AutoPartsStore.Infrastructure.Data;
 using AutoPartsStore.Infrastructure.Repositories;
 using AutoPartsStore.Infrastructure.Services;
+using AutoPartsStore.Web.Extensions;
+using AutoPartsStore.Web.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,21 +16,86 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
 builder.Services.AddControllers();
 
-// CORS («Œ Ì«—Ì° ·ﬂ‰ „Ê’Ï »Â)
-builder.Services.AddCors(options =>
+// Add Swagger services
+builder.Services.AddSwaggerGen(c =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+
+    // ≈⁄œ«œ «·‹ JWT Auth
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        policy.WithOrigins("https://yourfrontend.com")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "«ﬂ » ﬂ·„… 'Bearer' »⁄œÂ« ›—«€ À„ «· Êﬂ‰. „À«·: Bearer 12345abcdef"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
     });
 });
 
-// Database
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+// Database with advanced configuration
+builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: configuration.GetValue<int>("DatabaseSettings:MaxRetryCount", 3),
+            maxRetryDelay: TimeSpan.FromSeconds(5),
+            errorNumbersToAdd: null);
+
+        sqlOptions.CommandTimeout(configuration.GetValue<int?>("DatabaseSettings:CommandTimeout") ?? 30);
+    });
+
+    // «· ›⁄Ì· ›ﬁÿ ›Ì Ê÷⁄ «· ÿÊÌ—
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableDetailedErrors(
+            configuration.GetValue<bool>("DatabaseSettings:EnableDetailedErrors", true));
+        options.EnableSensitiveDataLogging(
+            configuration.GetValue<bool>("DatabaseSettings:EnableSensitiveDataLogging", true));
+    }
+});
+
+//// Â–« «·ﬂÊœ „Œ’’ ·⁄„·Ì«  EF Core Tools („À· Migration)
+//if (args.Length > 0 && args[0].Contains("ef", StringComparison.OrdinalIgnoreCase))
+//{
+//    //  ﬂÊÌ‰ »”Ìÿ ·‹ DbContext ·⁄„·Ì«  «· ’„Ì„
+//    builder.Services.AddDbContext<AppDbContext>(options =>
+//        options.UseSqlServer("Server=LAPTOP-2AR5OF7M;Database=AutoPartsStoreDb;Trusted_Connection=true;TrustServerCertificate=true;MultipleActiveResultSets=true;"));
+//}
+
 
 // Repositories
 builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
@@ -33,9 +103,31 @@ builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
 // Services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPartCategoryRepository, PartCategoryRepository>();
+builder.Services.AddScoped<IPartCategoryService, PartCategoryService>();
+builder.Services.AddScoped<ICarPartRepository, CarPartRepository>();
+builder.Services.AddScoped<ICarPartService, CarPartService>();
+builder.Services.AddScoped<ICityRepository, CityRepository>();
+builder.Services.AddScoped<ICityService, CityService>();
+builder.Services.AddScoped<IDistrictRepository, DistrictRepository>();
+builder.Services.AddScoped<IDistrictService, DistrictService>();
+builder.Services.AddScoped<IAddressRepository, AddressRepository>();
+builder.Services.AddScoped<IAddressService, AddressService>();
+builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
+builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
+builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
+builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
+builder.Services.AddScoped<IPricingService, PricingService>();
+builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
+builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
+builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
+builder.Services.AddScoped<IFavoriteService, FavoriteService>();
+builder.Services.AddRateLimiting(builder.Configuration);
+
 
 // ﬁ—«¡… ≈⁄œ«œ«  JWT „‰ Configuration
-var jwtKey = builder.Configuration["JWT_KEY"]
+var jwtKey =  builder.Configuration["Jwt:Key"]
              ?? throw new InvalidOperationException("JWT Key is not configured.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AutoPartsStore.Api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AutoPartsStore.Client";
@@ -68,21 +160,19 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+app.UseSwagger();
+app.UseSwaggerUI();
 
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-}
-else
-{
-    app.UseHsts();
-}
+
 
 app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");        // ≈–« ﬂ‰   ” Œœ„ Ê«ÃÂ… √„«„Ì…
-app.UseAuthentication();            
+app.UseCors("AllowAll");
+app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiting();
+
+// ›Ì Program.cs° ﬁ»· app.MapControllers();
+app.UseAdminCheck();
 app.MapControllers();
 
 // Error Handling

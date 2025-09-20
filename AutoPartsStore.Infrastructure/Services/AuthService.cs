@@ -1,7 +1,9 @@
 ﻿using AutoPartsStore.Core.Entities;
 using AutoPartsStore.Core.Interfaces;
+using AutoPartsStore.Core.Models.AuthModels;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -38,13 +40,10 @@ namespace AutoPartsStore.Infrastructure.Services
         {
             var user = await _userService.GetUserByUsernameAsync(username);
             if (user == null)
-                return new AuthenticationResult
-                {
-                    Success = false,
-                    Message = "المستخدم غير موجود."
-                };
+                return AuthenticationResult.FailureResult("المستخدم غير موجود.");
 
             var roles = await GetUserRolesAsync(user.Id);
+            var permissions = await GetUserPermissionsAsync(user.Id);
 
             var claims = new List<Claim>
             {
@@ -59,8 +58,12 @@ namespace AutoPartsStore.Infrastructure.Services
                 claims.Add(new Claim(ClaimTypes.Role, role.RoleName));
             }
 
-            // قراءة المفتاح والإصدار والجمهور من IConfiguration
-            var key = _configuration["JWT_KEY"]
+            foreach (var permission in permissions)
+            {
+                claims.Add(new Claim("Permission", permission));
+            }
+
+            var key = _configuration["Jwt:Key"] ?? _configuration["JWT_KEY"]
                      ?? throw new InvalidOperationException("JWT Key is not configured.");
 
             var issuer = _configuration["Jwt:Issuer"] ?? "AutoPartsStore.Api";
@@ -75,17 +78,31 @@ namespace AutoPartsStore.Infrastructure.Services
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
+                expires: DateTime.UtcNow.AddDays(30),
                 signingCredentials: signingCredentials);
 
             var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
 
-            return new AuthenticationResult
-            {
-                Success = true,
-                AccessToken = accessToken,
-                ExpiresAt = token.ValidTo
-            };
+            return AuthenticationResult.SuccessResult(
+                message: "تم تسجيل الدخول بنجاح",
+                accessToken: accessToken, 
+                expiresAt: token.ValidTo, 
+                userInfo: new UserInfoDto 
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    PhoneNumber = user.PhoneNumber,
+                    Roles = roles.Select(r => r.RoleName).ToList(),
+                    Permissions = permissions,
+                    RedirectTo = DetermineRedirectPath(roles),
+                    SessionInfo = new SessionInfoDto
+                    {
+                        LastLogin = user.LastLoginDate
+                    }
+                }
+            );
         }
 
         public async Task<AuthenticationResult> RegisterAsync(
@@ -98,20 +115,12 @@ namespace AutoPartsStore.Infrastructure.Services
             // التحقق من التكرار
             if (await _userService.UsernameExistsAsync(username))
             {
-                return new AuthenticationResult
-                {
-                    Success = false,
-                    Message = "اسم المستخدم مسجل مسبقًا."
-                };
+                return AuthenticationResult.FailureResult("اسم المستخدم مسجل مسبقًا.");
             }
 
             if (await _userService.EmailExistsAsync(email))
             {
-                return new AuthenticationResult
-                {
-                    Success = false,
-                    Message = "البريد الإلكتروني مسجل مسبقًا."
-                };
+                return AuthenticationResult.FailureResult("البريد الإلكتروني مسجل مسبقًا.");
             }
 
             // تشفير كلمة المرور
@@ -134,16 +143,62 @@ namespace AutoPartsStore.Infrastructure.Services
                 await _context.SaveChangesAsync();
             }
 
-            return new AuthenticationResult
-            {
-                Success = true,
-                Message = "تم التسجيل بنجاح."
-            };
+            return AuthenticationResult.SuccessResult("تم التسجيل بنجاح.");
         }
 
-        // ========================
-        // دوال مساعدة داخلية
-        // ========================
+        private string DetermineRedirectPath(List<UserRole> roles)
+        {
+            if (roles.Any(r => r.RoleName == "Admin"))
+                return "/admin/dashboard";
+
+            if (roles.Any(r => r.RoleName == "Supplier"))
+                return "/supplier/products";
+
+            if (roles.Any(r => r.RoleName == "Customer"))
+                return "/store";
+
+            return "/";
+        }
+
+        private async Task<List<string>> GetUserPermissionsAsync(int userId)
+        {
+            var roles = await GetUserRolesAsync(userId);
+            var permissions = new List<string>();
+
+            foreach (var role in roles)
+            {
+                switch (role.RoleName)
+                {
+                    case "Admin":
+                        permissions.AddRange(new[] {
+                            "users.manage", "products.manage", "orders.manage",
+                            "settings.manage", "reports.view"
+                        });
+                        break;
+                    case "Supplier":
+                        permissions.AddRange(new[] {
+                            "products.manage", "inventory.manage", "orders.view"
+                        });
+                        break;
+                    case "Customer":
+                        permissions.AddRange(new[] {
+                            "products.view", "orders.create", "reviews.create"
+                        });
+                        break;
+                }
+            }
+
+            return permissions.Distinct().ToList();
+        }
+
+        private async Task<List<UserRole>> GetUserRolesAsync(int userId)
+        {
+            return await _context.UserRoleAssignments
+                .Where(a => a.UserId == userId)
+                .Include(a => a.Role)
+                .Select(a => a.Role)
+                .ToListAsync();
+        }
 
         private string HashPassword(string password)
         {
@@ -161,14 +216,8 @@ namespace AutoPartsStore.Infrastructure.Services
                 return false;
             }
         }
-
-        private async Task<List<UserRole>> GetUserRolesAsync(int userId)
-        {
-            return await _context.UserRoleAssignments
-                .Where(a => a.UserId == userId)
-                .Include(a => a.Role)
-                .Select(a => a.Role)
-                .ToListAsync();
-        }
     }
+
+
+   
 }

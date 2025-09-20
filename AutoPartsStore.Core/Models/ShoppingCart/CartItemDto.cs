@@ -1,0 +1,22 @@
+﻿namespace AutoPartsStore.Core.Models.Cart
+{
+    public class CartItemDto
+    {
+        public int Id { get; set; }
+        public int CartId { get; set; }
+        public int PartId { get; set; }
+        public string PartNumber { get; set; }
+        public string PartName { get; set; }
+        public string ImageUrl { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal DiscountPercent { get; set; }
+        public decimal FinalPrice { get; set; }
+        public int Quantity { get; set; }
+        public decimal TotalPrice { get; set; }
+        public decimal TotalDiscount { get; set; }
+        public decimal FinalTotal { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public bool IsAvailable { get; set; }
+        public int AvailableStock { get; set; }
+    }
+}

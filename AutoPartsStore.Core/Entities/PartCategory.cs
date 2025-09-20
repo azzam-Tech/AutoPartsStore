@@ -1,13 +1,23 @@
-﻿namespace AutoPartsStore.Core.Entities
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace AutoPartsStore.Core.Entities
 {
     public class PartCategory 
     {
         public int Id { get; private set; }
+        [Required]
+        [MaxLength(100)]
         public string CategoryName { get; private set; }
         public int? ParentCategoryId { get; private set; }
+        [MaxLength(500)]
         public string? Description { get; private set; }
+        [Url]
+        [MaxLength(255)]
         public string? ImageUrl { get; private set; }
         public bool IsActive { get; private set; }
+        public bool IsDeleted { get; private set; }
+        public DateTime? DeletedAt { get; private set; }
+
 
         // Relationships
         public PartCategory? ParentCategory { get; private set; }
@@ -25,5 +35,25 @@
 
         public void Deactivate() => IsActive = false;
         public void Activate() => IsActive = true;
+        public void SoftDelete()
+        {
+            IsDeleted = true;
+            DeletedAt = DateTime.UtcNow;
+        }
+
+        public void Restore()
+        {
+            IsDeleted = false;
+            DeletedAt = null;
+        }
+
+        public void Update(string categoryName, string? description = null, 
+                         string? imageUrl = null, int? parentCategoryId = null)
+        {
+            CategoryName = categoryName;
+            Description = description;
+            ImageUrl = imageUrl;
+            ParentCategoryId = parentCategoryId;
+        }
     }
 }

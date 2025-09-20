@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("Addresses");
             builder.HasKey(a => a.Id);
-            builder.Property(a => a.Id).HasColumnName("AddressID");
+            builder.Property(a => a.Id);
 
             builder.HasOne(a => a.User)
                 .WithMany(u => u.Addresses)
@@ -20,7 +20,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasOne(a => a.District)
                 .WithMany(d => d.Addresses)
                 .HasForeignKey(a => a.DistrictId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Property(a => a.StreetName)
                 .HasMaxLength(150);
@@ -30,15 +30,12 @@ namespace AutoPartsStore.Infrastructure.Configuration
 
             builder.Property(a => a.PostalCode)
                 .HasMaxLength(10);
+
+
+            // Indexes
+            builder.HasIndex(a => a.UserId);
+            builder.HasIndex(a => a.DistrictId);
+            builder.HasIndex(a => a.PostalCode);
         }
     }
-
-
-
-
-
-
-
-
-
 }

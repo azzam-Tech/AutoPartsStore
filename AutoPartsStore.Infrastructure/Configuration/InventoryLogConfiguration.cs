@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("InventoryLogs");
             builder.HasKey(il => il.Id);
-            builder.Property(il => il.Id).HasColumnName("LogID");
+            builder.Property(il => il.Id);
 
             builder.HasOne(il => il.CarPart)
                 .WithMany(p => p.InventoryLogs)
@@ -45,13 +45,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .HasMaxLength(500);
         }
     }
-
-
-
-
-
-
-
-
-
 }

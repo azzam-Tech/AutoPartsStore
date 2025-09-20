@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("UserRoleAssignments");
             builder.HasKey(a => a.Id);
-            builder.Property(a => a.Id).HasColumnName("AssignmentID");
+            builder.Property(a => a.Id);
 
             builder.HasOne(a => a.User)
                 .WithMany(u => u.RoleAssignments)
@@ -20,18 +20,9 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasOne(a => a.Role)
                 .WithMany(r => r.Assignments)
                 .HasForeignKey(a => a.RoleId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasIndex(a => new { a.UserId, a.RoleId }).IsUnique();
         }
     }
-
-
-
-
-
-
-
-
-
 }

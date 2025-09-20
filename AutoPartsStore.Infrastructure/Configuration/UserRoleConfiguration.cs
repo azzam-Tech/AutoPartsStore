@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("UserRoles");
             builder.HasKey(r => r.Id);
-            builder.Property(r => r.Id).HasColumnName("RoleID");
+            builder.Property(r => r.Id);
 
             builder.Property(r => r.RoleName)
                 .IsRequired()
@@ -18,6 +18,11 @@ namespace AutoPartsStore.Infrastructure.Configuration
 
             builder.Property(r => r.Description)
                 .HasMaxLength(255);
+
+            builder.Property(p => p.CreatedAt)
+                .IsRequired();
+
+            builder.Property(p => p.UpdatedAt);
         }
     }
 

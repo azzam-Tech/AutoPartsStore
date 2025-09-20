@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("Promotions");
             builder.HasKey(p => p.Id);
-            builder.Property(p => p.Id).HasColumnName("PromotionID");
+            builder.Property(p => p.Id);
 
             builder.Property(p => p.PromotionName)
                 .IsRequired()
@@ -21,10 +21,8 @@ namespace AutoPartsStore.Infrastructure.Configuration
 
             builder.Property(p => p.DiscountType)
                 .IsRequired()
-                .HasMaxLength(1)
-                .HasConversion(
-                    v => v.ToString(),
-                    v => v[0]);
+                .HasConversion<int>()   
+                .HasColumnType("int");
 
             builder.Property(p => p.DiscountValue)
                 .IsRequired()
@@ -38,20 +36,16 @@ namespace AutoPartsStore.Infrastructure.Configuration
 
             builder.Property(p => p.IsActive)
                 .IsRequired()
-                .HasDefaultValue(true);
+                .HasDefaultValue(false);
+
+            builder.Property(p => p.CreatedAt)
+                .IsRequired();
+
+            builder.Property(p => p.UpdatedAt);
 
             builder.Property(p => p.MinOrderAmount)
                 .HasDefaultValue(0)
                 .HasColumnType("DECIMAL(10,2)");
         }
     }
-
-
-
-
-
-
-
-
-
 }

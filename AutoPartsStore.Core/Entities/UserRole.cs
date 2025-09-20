@@ -5,6 +5,8 @@
         public int Id { get; private set; }
         public string RoleName { get; private set; }
         public string? Description { get; private set; }
+        public DateTime CreatedAt { get; private set; }
+        public DateTime? UpdatedAt { get; private set; }
 
         // Relationship
         public List<UserRoleAssignment> Assignments { get; private set; } = new();
@@ -13,6 +15,7 @@
         {
             RoleName = roleName;
             Description = description;
+            CreatedAt = DateTime.UtcNow;
         }
     }
 }

@@ -10,20 +10,11 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("Cities");
             builder.HasKey(c => c.Id);
-            builder.Property(c => c.Id).HasColumnName("CityID");
+            builder.Property(c => c.Id);
 
             builder.Property(c => c.CityName)
                 .IsRequired()
                 .HasMaxLength(100);
         }
     }
-
-
-
-
-
-
-
-
-
 }

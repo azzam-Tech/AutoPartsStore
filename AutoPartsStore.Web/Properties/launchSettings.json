@@ -13,22 +13,24 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "launchUrl": "weatherforecast",
+      "launchUrl": "swagger",
       "applicationUrl": "http://localhost:5023",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "JWT_KEY": "AutoPartsStore_Jwt_Secret_2025!@#$%^&*()_+{}:<>?|~`1234567890"
+        "JWT_KEY": "AutoPartsStore_Jwt_Secret_2025!@#$%^&*()_+{}:<>?|~`1234567890",
+        "EMERGENCY_ADMIN_KEY": "AutoPartsStore_Emergency_2025!@#$%^&*()_+{}:<>?"
       }
     },
     "https": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "launchUrl": "weatherforecast",
+      "launchUrl": "swagger",
       "applicationUrl": "https://localhost:7155;http://localhost:5023",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "JWT_KEY": "AutoPartsStore_Jwt_Secret_2025!@#$%^&*()_+{}:<>?|~`1234567890"
+        "JWT_KEY": "AutoPartsStore_Jwt_Secret_2025!@#$%^&*()_+{}:<>?|~`1234567890",
+        "EMERGENCY_ADMIN_KEY": "AutoPartsStore_Emergency_2025!@#$%^&*()_+{}:<>?"
       }
     },
     "IIS Express": {
@@ -37,7 +39,8 @@
       "launchUrl": "weatherforecast",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "JWT_KEY": "AutoPartsStore_Jwt_Secret_2025!@#$%^&*()_+{}:<>?|~`1234567890"
+        "JWT_KEY": "AutoPartsStore_Jwt_Secret_2025!@#$%^&*()_+{}:<>?|~`1234567890",
+        "EMERGENCY_ADMIN_KEY": "AutoPartsStore_Emergency_2025!@#$%^&*()_+{}:<>?"
       }
     }
   }

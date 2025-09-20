@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("PartSupplies");
             builder.HasKey(ps => ps.Id);
-            builder.Property(ps => ps.Id).HasColumnName("SupplyID");
+            builder.Property(ps => ps.Id);
 
             builder.HasOne(ps => ps.CarPart)
                 .WithMany(p => p.Supplies)
@@ -20,7 +20,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasOne(ps => ps.Supplier)
                 .WithMany(s => s.Supplies)
                 .HasForeignKey(ps => ps.SupplierId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Property(ps => ps.SupplyPrice)
                 .IsRequired()
@@ -31,13 +31,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasIndex(ps => new { ps.PartId, ps.SupplierId }).IsUnique();
         }
     }
-
-
-
-
-
-
-
-
-
 }

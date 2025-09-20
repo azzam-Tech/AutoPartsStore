@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("SystemSettings");
             builder.HasKey(ss => ss.Id);
-            builder.Property(ss => ss.Id).HasColumnName("SettingID");
+            builder.Property(ss => ss.Id);
 
             builder.Property(ss => ss.SettingKey)
                 .IsRequired()
@@ -30,13 +30,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasIndex(ss => ss.SettingKey).IsUnique();
         }
     }
-
-
-
-
-
-
-
-
-
 }

@@ -19,12 +19,18 @@ namespace AutoPartsStore.Core.Entities
         public DateTime? LastLoginDate { get; private set; }
         public DateTime? LastLocationUpdate { get; private set; }
         public bool IsActive { get; private set; }
+        public bool IsDeleted { get; private set; }
+        public DateTime? DeletedAt { get; private set; }
+        public DateTime CreatedAt { get; private set; }
+        public DateTime? UpdatedAt { get; private set; }
 
         // Relationships
         public List<UserRoleAssignment> RoleAssignments { get; private set; } = new();
         public List<Address> Addresses { get; private set; } = new();
         public ShoppingCart? ShoppingCart { get; private set; }
         public List<ProductReview> Reviews { get; private set; } = new();
+        public List<Favorite> Favorites { get; private set; } = new();
+
 
         // Constructor
         public User(string username, string passwordHash, string email, string fullName, string phoneNumber)
@@ -36,12 +42,29 @@ namespace AutoPartsStore.Core.Entities
             PhoneNumber = phoneNumber;
             RegistrationDate = DateTime.UtcNow;
             IsActive = true;
+            IsDeleted = false;
+            DeletedAt = null;
+            CreatedAt = DateTime.UtcNow;
         }
 
         // Methods
         public void UpdateLastLogin() => LastLoginDate = DateTime.UtcNow;
         public void Deactivate() => IsActive = false;
         public void Activate() => IsActive = true;
+
+        public void SoftDelete()
+        {
+            IsDeleted = true;
+            DeletedAt = DateTime.UtcNow;
+        }
+
+        public void Restore()
+        {
+            IsDeleted = false;
+            DeletedAt = null;
+        }
+
+
 
     }
 }

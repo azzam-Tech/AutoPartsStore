@@ -6,7 +6,7 @@
         public int CartId { get; private set; }
         public int PartId { get; private set; }
         public int Quantity { get; private set; }
-        public DateTime AddedDate { get; private set; }
+        public DateTime CreatedAt { get; private set; }
 
         // Navigation
         public ShoppingCart Cart { get; private set; }
@@ -17,7 +17,7 @@
             CartId = cartId;
             PartId = partId;
             Quantity = quantity;
-            AddedDate = DateTime.UtcNow;
+            CreatedAt = DateTime.UtcNow;
             Validate();
         }
 

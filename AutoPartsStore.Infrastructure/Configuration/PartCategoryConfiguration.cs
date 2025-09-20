@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("PartCategories");
             builder.HasKey(c => c.Id);
-            builder.Property(c => c.Id).HasColumnName("CategoryID");
+            builder.Property(c => c.Id);
 
             builder.Property(c => c.CategoryName)
                 .IsRequired()
@@ -25,21 +25,22 @@ namespace AutoPartsStore.Infrastructure.Configuration
 
             builder.Property(c => c.IsActive)
                 .HasDefaultValue(true);
+            builder.Property(e => e.DeletedAt);
+
+            builder.Property(e => e.IsDeleted)
+                   .HasDefaultValue(false);
 
             // Self-reference
             builder.HasOne(c => c.ParentCategory)
                 .WithMany(c => c.SubCategories)
                 .HasForeignKey(c => c.ParentCategoryId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            builder.HasIndex(pc => pc.CategoryName);
+            builder.HasIndex(pc => pc.ParentCategoryId);
+            builder.HasIndex(pc => pc.IsActive);
+            builder.HasIndex(pc => pc.IsDeleted);
         }
     }
-
-
-
-
-
-
-
-
-
 }

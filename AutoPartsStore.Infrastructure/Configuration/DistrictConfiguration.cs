@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Configuration
         {
             builder.ToTable("Districts");
             builder.HasKey(d => d.Id);
-            builder.Property(d => d.Id).HasColumnName("DistrictID");
+            builder.Property(d => d.Id);
 
             builder.Property(d => d.DistrictName)
                 .IsRequired()
@@ -24,13 +24,4 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.HasIndex(d => new { d.CityId, d.DistrictName }).IsUnique();
         }
     }
-
-
-
-
-
-
-
-
-
 }
