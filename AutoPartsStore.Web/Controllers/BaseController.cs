@@ -32,6 +32,11 @@ namespace AutoPartsStore.Web.Controllers
             return Unauthorized(ApiResponse.FailureResult(message));
         }
 
+        protected IActionResult Forbidden(string message = "ممنوع الوصول")
+        {
+            return StatusCode(403, ApiResponse.FailureResult(message));
+        }
+
         protected IActionResult InternalServerError(string message = "حدث خطأ داخلي في الخادم")
         {
             return StatusCode(500, ApiResponse.FailureResult(message));

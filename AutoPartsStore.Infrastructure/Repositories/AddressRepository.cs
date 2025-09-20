@@ -14,9 +14,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.Addresses
                 .Where(a => a.UserId == userId)
-                .Include(a => a.User)
-                .Include(a => a.District)
-                .ThenInclude(d => d.City)
                 .Select(a => new AddressDto
                 {
                     Id = a.Id,
@@ -36,13 +33,10 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<AddressDto> GetByIdWithDetailsAsync(int id)
+        public async Task<AddressDto?> GetByIdWithDetailsAsync(int id)
         {
             return await _context.Addresses
                 .Where(a => a.Id == id)
-                .Include(a => a.User)
-                .Include(a => a.District)
-                .ThenInclude(d => d.City)
                 .Select(a => new AddressDto
                 {
                     Id = a.Id,

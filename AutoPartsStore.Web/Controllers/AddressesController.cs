@@ -26,7 +26,7 @@ namespace AutoPartsStore.Web.Controllers
             // Verify the authenticated user can only access their own addresses
             var authenticatedUserId = GetAuthenticatedUserId();
             if (authenticatedUserId != userId && !User.IsInRole("Admin"))
-                return Forbid();
+                return Forbidden();
 
             var addresses = await _addressService.GetUserAddressesAsync(userId);
             return Success(addresses);
@@ -41,7 +41,7 @@ namespace AutoPartsStore.Web.Controllers
             // Verify the authenticated user can only access their own address
             var authenticatedUserId = GetAuthenticatedUserId();
             if (address != null && address.UserId != authenticatedUserId && !User.IsInRole("Admin"))
-                return Forbid();
+                return Forbidden();
 
             return address != null ? Success(address) : NotFound();
         }
@@ -50,10 +50,13 @@ namespace AutoPartsStore.Web.Controllers
         [Authorize]
         public async Task<IActionResult> Create([FromBody] CreateAddressRequest request)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             // Verify the authenticated user can only create addresses for themselves
             var authenticatedUserId = GetAuthenticatedUserId();
             if (request.UserId != authenticatedUserId && !User.IsInRole("Admin"))
-                return Forbid();
+                return Forbidden();
 
             try
             {
@@ -70,6 +73,9 @@ namespace AutoPartsStore.Web.Controllers
         [Authorize]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateAddressRequest request)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var address = await _addressService.GetByIdAsync(id);
             if (address == null)
                 return NotFound();
@@ -77,7 +83,7 @@ namespace AutoPartsStore.Web.Controllers
             // Verify the authenticated user can only update their own address
             var authenticatedUserId = GetAuthenticatedUserId();
             if (address.UserId != authenticatedUserId && !User.IsInRole("Admin"))
-                return Forbid();
+                return Forbidden();
 
             try
             {
@@ -141,6 +147,8 @@ namespace AutoPartsStore.Web.Controllers
         private int GetAuthenticatedUserId()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null)
+                throw new UnauthorizedAccessException("User ID claim not found");
             return int.Parse(userIdClaim);
         }
     }

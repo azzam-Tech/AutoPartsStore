@@ -25,7 +25,7 @@ namespace AutoPartsStore.Infrastructure.Services
             return await _addressRepository.GetByUserIdAsync(userId);
         }
 
-        public async Task<AddressDto> GetByIdAsync(int id)
+        public async Task<AddressDto?> GetByIdAsync(int id)
         {
             return await _addressRepository.GetByIdWithDetailsAsync(id);
         }
@@ -37,7 +37,7 @@ namespace AutoPartsStore.Infrastructure.Services
                 throw new InvalidOperationException("User not found.");
 
             var district = await _context.Districts
-                .Include(d => d.City)
+                //.Include(d => d.City)
                 .FirstOrDefaultAsync(d => d.Id == request.DistrictId);
             if (district == null)
                 throw new InvalidOperationException("District not found.");
@@ -57,7 +57,10 @@ namespace AutoPartsStore.Infrastructure.Services
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Address created for user {UserId}", request.UserId);
-            return await _addressRepository.GetByIdWithDetailsAsync(address.Id);
+            var addressDto = await _addressRepository.GetByIdWithDetailsAsync(address.Id);
+            if (addressDto == null)
+                throw new InvalidOperationException("Failed to retrieve created address.");
+            return addressDto;
         }
 
         public async Task<AddressDto> UpdateAsync(int id, UpdateAddressRequest request)
@@ -83,7 +86,10 @@ namespace AutoPartsStore.Infrastructure.Services
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Address updated: {AddressId}", id);
-            return await _addressRepository.GetByIdWithDetailsAsync(address.Id);
+            var addressDto = await _addressRepository.GetByIdWithDetailsAsync(address.Id);
+            if (addressDto == null)
+                throw new InvalidOperationException("Failed to retrieve updated address.");
+            return addressDto;
         }
 
         public async Task<bool> DeleteAsync(int id)
