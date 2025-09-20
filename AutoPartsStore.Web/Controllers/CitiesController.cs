@@ -38,6 +38,9 @@ namespace AutoPartsStore.Web.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CreateCityRequest request)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             try
             {
                 var city = await _cityService.CreateAsync(request);
@@ -53,6 +56,9 @@ namespace AutoPartsStore.Web.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateCityRequest request)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             try
             {
                 var city = await _cityService.UpdateAsync(id, request);

@@ -6,6 +6,6 @@ namespace AutoPartsStore.Core.Models.City
     {
         [Required]
         [StringLength(100, MinimumLength = 2)]
-        public string CityName { get; set; }
+        public required string CityName { get; set; }
     }
 }

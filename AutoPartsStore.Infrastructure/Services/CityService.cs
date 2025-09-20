@@ -22,10 +22,10 @@ namespace AutoPartsStore.Infrastructure.Services
 
         public async Task<IEnumerable<CityDto>> GetAllAsync()
         {
-            return await _cityRepository.GetAllAsync();
+            return await _cityRepository.GetAllCitiesAsync();
         }
 
-        public async Task<CityDto> GetByIdAsync(int id)
+        public async Task<CityDto?> GetByIdAsync(int id)
         {
             return await _cityRepository.GetByIdWithDistrictsAsync(id);
         }
@@ -40,7 +40,10 @@ namespace AutoPartsStore.Infrastructure.Services
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("City created: {CityName}", request.CityName);
-            return await _cityRepository.GetByIdWithDistrictsAsync(city.Id);
+            var cityDto = await _cityRepository.GetByIdWithDistrictsAsync(city.Id);
+            if (cityDto is null)
+                throw new InvalidOperationException("Failed to retrieve the created city.");
+            return cityDto;
         }
 
         public async Task<CityDto> UpdateAsync(int id, UpdateCityRequest request)
@@ -56,7 +59,10 @@ namespace AutoPartsStore.Infrastructure.Services
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("City updated: {CityName}", request.CityName);
-            return await _cityRepository.GetByIdWithDistrictsAsync(city.Id);
+            var cityDto = await _cityRepository.GetByIdWithDistrictsAsync(city.Id);
+            if (cityDto is null)
+                throw new InvalidOperationException("Failed to retrieve the updated city.");
+            return cityDto;
         }
 
         public async Task<bool> DeleteAsync(int id)

@@ -10,7 +10,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
     {
         public CityRepository(AppDbContext context) : base(context) { }
 
-        public async Task<IEnumerable<CityDto>> GetAllAsync()
+        public async Task<IEnumerable<CityDto>> GetAllCitiesAsync()
         {
             return await _context.Cities
                 .Select(c => new CityDto
@@ -23,7 +23,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<CityDto> GetByIdWithDistrictsAsync(int id)
+        public async Task<CityDto?> GetByIdWithDistrictsAsync(int id)
         {
             return await _context.Cities
                 .Where(c => c.Id == id)
