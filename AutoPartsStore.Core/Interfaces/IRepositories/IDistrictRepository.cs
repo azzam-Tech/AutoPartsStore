@@ -5,9 +5,9 @@ namespace AutoPartsStore.Core.Interfaces
 {
     public interface IDistrictRepository : IBaseRepository<District>
     {
-        Task<IEnumerable<DistrictDto>> GetAllAsync();
+        new Task<IEnumerable<DistrictDto>> GetAllAsync();
         Task<IEnumerable<DistrictDto>> GetByCityIdAsync(int cityId);
-        Task<DistrictDto> GetByIdWithDetailsAsync(int id);
+        Task<DistrictDto?> GetByIdWithDetailsAsync(int id);
         Task<bool> DistrictExistsAsync(int cityId, string districtName, int? excludeId = null);
         Task<int> GetAddressesCountAsync(int districtId);
     }

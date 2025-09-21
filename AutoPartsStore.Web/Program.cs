@@ -6,6 +6,7 @@ using AutoPartsStore.Infrastructure.Repositories;
 using AutoPartsStore.Infrastructure.Services;
 using AutoPartsStore.Web.Extensions;
 using AutoPartsStore.Web.Middleware;
+using AutoPartsStore.Web.Middlewares;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -163,6 +164,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseMiddleware<ExceptionMiddleware>();
 
 
 app.UseHttpsRedirection();

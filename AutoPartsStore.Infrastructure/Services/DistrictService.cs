@@ -1,9 +1,11 @@
 ﻿using AutoPartsStore.Core.Entities;
+using AutoPartsStore.Core.Exceptions;
 using AutoPartsStore.Core.Interfaces;
 using AutoPartsStore.Core.Models.District;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+
 
 namespace AutoPartsStore.Infrastructure.Services
 {
@@ -30,7 +32,7 @@ namespace AutoPartsStore.Infrastructure.Services
             return await _districtRepository.GetByCityIdAsync(cityId);
         }
 
-        public async Task<DistrictDto> GetByIdAsync(int id)
+        public async Task<DistrictDto?> GetByIdAsync(int id)
         {
             return await _districtRepository.GetByIdWithDetailsAsync(id);
         }
@@ -38,11 +40,11 @@ namespace AutoPartsStore.Infrastructure.Services
         public async Task<DistrictDto> CreateAsync(CreateDistrictRequest request)
         {
             if (await _districtRepository.DistrictExistsAsync(request.CityId, request.DistrictName))
-                throw new InvalidOperationException($"District '{request.DistrictName}' already exists in this city.");
+                throw new BusinessException($"District '{request.DistrictName}' already exists in this city.");
 
             var city = await _context.Cities.FindAsync(request.CityId);
             if (city == null)
-                throw new InvalidOperationException("City not found.");
+                throw new NotFoundException("City not found.");
 
             var district = new District(request.CityId, request.DistrictName);
             _context.Districts.Add(district);
@@ -51,21 +53,25 @@ namespace AutoPartsStore.Infrastructure.Services
             _logger.LogInformation("District created: {DistrictName} in city {CityId}",
                 request.DistrictName, request.CityId);
 
-            return await _districtRepository.GetByIdWithDetailsAsync(district.Id);
+            var result = await _districtRepository.GetByIdWithDetailsAsync(district.Id);
+            if (result == null)
+                throw new BusinessException("Failed to retrieve created district details.");
+
+            return result;
         }
 
         public async Task<DistrictDto> UpdateAsync(int id, UpdateDistrictRequest request)
         {
             var district = await _context.Districts.FindAsync(id);
             if (district == null)
-                throw new KeyNotFoundException("District not found.");
+                throw new NotFoundException("District not found.");
 
             if (await _districtRepository.DistrictExistsAsync(request.CityId, request.DistrictName, id))
-                throw new InvalidOperationException($"District '{request.DistrictName}' already exists in this city.");
+                throw new BusinessException($"District '{request.DistrictName}' already exists in this city.");
 
             var city = await _context.Cities.FindAsync(request.CityId);
             if (city == null)
-                throw new InvalidOperationException("City not found.");
+                throw new NotFoundException("City not found.");
 
             district.UpdateName(request.DistrictName);
             district.ChangeCity(request.CityId);
@@ -75,7 +81,11 @@ namespace AutoPartsStore.Infrastructure.Services
             _logger.LogInformation("District updated: {DistrictName} in city {CityId}",
                 request.DistrictName, request.CityId);
 
-            return await _districtRepository.GetByIdWithDetailsAsync(district.Id);
+            var result = await _districtRepository.GetByIdWithDetailsAsync(district.Id);
+            if (result == null)
+                throw new BusinessException("Failed to retrieve updated district details.");
+
+            return result;
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -85,10 +95,10 @@ namespace AutoPartsStore.Infrastructure.Services
                 .FirstOrDefaultAsync(d => d.Id == id);
 
             if (district == null)
-                throw new KeyNotFoundException("District not found.");
+                throw new NotFoundException("District not found.");
 
             if (district.Addresses.Any())
-                throw new InvalidOperationException("Cannot delete district with addresses.");
+                throw new BusinessException("Cannot delete district with addresses.");
 
             _context.Districts.Remove(district);
             await _context.SaveChangesAsync();
