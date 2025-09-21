@@ -164,9 +164,6 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseMiddleware<ExceptionMiddleware>();
-
-
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthentication();
@@ -175,7 +172,11 @@ app.UseRateLimiting();
 
 // ›Ì Program.cs° ﬁ»· app.MapControllers();
 app.UseAdminCheck();
+app.UseMiddleware<ExceptionMiddleware>();
+app.UseStatusCodeHandling();
+
 app.MapControllers();
+
 
 // Error Handling
 app.UseExceptionHandler("/error");
