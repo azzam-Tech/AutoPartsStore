@@ -87,14 +87,18 @@ namespace AutoPartsStore.Infrastructure.Repositories
             if (filter.IsActive.HasValue)
                 query = query.Where(p => p.IsActive == filter.IsActive);
 
-            // Apply sorting
-            query = filter.SortBy  switch
+            if (filter.SortBy.HasValue)
             {
-                SortBy.price => filter.SortDescending ? query.OrderByDescending(p => p.UnitPrice) : query.OrderBy(p => p.UnitPrice),
-                SortBy.name => filter.SortDescending ? query.OrderByDescending(p => p.PartName) : query.OrderBy(p => p.PartName),
-                SortBy.newest => query.OrderByDescending(p => p.CreatedAt),
-                _ => query.OrderBy(p => p.PartName)
-            };
+                // Apply sorting
+                query = filter.SortBy switch
+                {
+                    SortBy.price => filter.SortDescending != null && filter.SortDescending.Value ? query.OrderByDescending(p => p.UnitPrice) : query.OrderBy(p => p.UnitPrice),
+                    SortBy.name => filter.SortDescending != null && filter.SortDescending.Value ? query.OrderByDescending(p => p.PartName) : query.OrderBy(p => p.PartName),
+                    SortBy.newest => query.OrderByDescending(p => p.CreatedAt),
+                    _ => query.OrderBy(p => p.PartName)
+                };
+            }
+           
 
             // Apply pagination
             query = query.Skip((filter.Page - 1) * filter.PageSize)

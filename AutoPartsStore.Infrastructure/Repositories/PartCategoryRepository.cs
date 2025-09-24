@@ -31,8 +31,10 @@ namespace AutoPartsStore.Infrastructure.Repositories
                             Id = sc.Id,
                             ParentCategoryId = sc.ParentCategoryId,
                             CategoryName = sc.CategoryName,
+                            ParentCategoryName = sc.ParentCategory != null ? sc.ParentCategory.CategoryName : null,
                             Description = sc.Description,
                             ImageUrl = sc.ImageUrl,
+                            IsActive = sc.IsActive,
                             ProductsCount = sc.CarParts.Count(cp => !cp.IsDeleted),
                             SubCategories = sc.SubCategories
                                 .Where(ssc => !ssc.IsDeleted && ssc.IsActive && ssc.ParentCategoryId == sc.Id)
@@ -41,8 +43,10 @@ namespace AutoPartsStore.Infrastructure.Repositories
                                     Id = ssc.Id,
                                     ParentCategoryId = ssc.ParentCategoryId,
                                     CategoryName = ssc.CategoryName,
+                                    ParentCategoryName = ssc.ParentCategory != null ? ssc.ParentCategory.CategoryName : null,
                                     Description = ssc.Description,
                                     ImageUrl = ssc.ImageUrl,
+                                    IsActive = ssc.IsActive,
                                     ProductsCount = ssc.CarParts.Count(cp => !cp.IsDeleted)
                                 })
                                 .ToList() ?? null

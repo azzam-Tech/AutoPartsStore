@@ -177,8 +177,4 @@ app.UseStatusCodeHandling();
 
 app.MapControllers();
 
-
-// Error Handling
-app.UseExceptionHandler("/error");
-
 app.Run();

@@ -1,7 +1,6 @@
-﻿using System.Net;
+﻿using AutoPartsStore.Core.Exceptions;
+using AutoPartsStore.Core.Models;
 using System.Text.Json;
-using AutoPartsStore.Core.Exceptions;
-using AutoPartsStore.Core.Models; // ApiResponse
 
 namespace AutoPartsStore.Web.Middlewares
 {
@@ -20,7 +19,7 @@ namespace AutoPartsStore.Web.Middlewares
         {
             try
             {
-                await _next(context); // مرر الطلب لبقية الـ Middleware
+                await _next(context);
             }
             catch (Exception ex)
             {
@@ -30,35 +29,54 @@ namespace AutoPartsStore.Web.Middlewares
 
         private async Task HandleExceptionAsync(HttpContext context, Exception ex)
         {
-            _logger.LogError(ex, ex.Message);
+            _logger.LogError(ex, "Unhandled exception occurred: {Message}", ex.Message);
 
-            context.Response.ContentType = "application/json";
-            context.Response.StatusCode = ex switch
+            // تأكد أن الـ Response لم يبدأ بعد
+            if (context.Response.HasStarted)
             {
-                BusinessException => (int)HttpStatusCode.BadRequest,              // خطأ في منطق العمل
-                ValidationException => (int)HttpStatusCode.BadRequest,            // خطأ في التحقق من البيانات
-                UnauthorizedException => (int)HttpStatusCode.Unauthorized,        // غير مصرح
-                ForbiddenException => (int)HttpStatusCode.Forbidden,              // ممنوع الوصول
-                NotFoundException => (int)HttpStatusCode.NotFound,                // غير موجود
-                _ => (int)HttpStatusCode.InternalServerError                      // أي خطأ آخر
+                _logger.LogWarning("Response has already started, cannot handle exception middleware.");
+                return;
+            }
+
+            var statusCode = ex switch
+            {
+                BusinessException => StatusCodes.Status400BadRequest,
+                ValidationException => StatusCodes.Status400BadRequest,
+                UnauthorizedException => StatusCodes.Status401Unauthorized,
+                ForbiddenException => StatusCodes.Status403Forbidden,
+                NotFoundException => StatusCodes.Status404NotFound,
+                _ => StatusCodes.Status500InternalServerError
             };
 
-
-            ApiResponse response = ex switch
+            var message = ex switch
             {
-                BusinessException bex => ApiResponse.FailureResult("خطأ في منطق العمل", new List<string> { bex.Message }),
-                ValidationException vex => ApiResponse.FailureResult("خطأ في التحقق من البيانات", new List<string> { vex.Message }),
-                UnauthorizedException => ApiResponse.FailureResult("غير مصرح بالدخول", new List<string> { ex.Message }),
-                ForbiddenException => ApiResponse.FailureResult("الوصول ممنوع", new List<string> { ex.Message }),
-                NotFoundException => ApiResponse.FailureResult("العنصر غير موجود", new List<string> { ex.Message }),
-                _ => ApiResponse.FailureResult("خطأ غير متوقع", new List<string> { ex.Message })
+                BusinessException => "خطأ في منطق العمل",
+                ValidationException => "خطأ في التحقق من البيانات",
+                UnauthorizedException => "غير مصرح بالدخول",
+                ForbiddenException => "الوصول ممنوع",
+                NotFoundException => "العنصر غير موجود",
+                _ => "خطأ غير متوقع"
             };
 
+            var errors = ex is ValidationException vex ? vex.Errors : new List<string> { ex.Message };
 
-            var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-            var result = JsonSerializer.Serialize(response, options);
+            var response = new ApiResponse
+            {
+                Success = false,
+                Message = message,
+                Errors = errors
+            };
 
-            await context.Response.WriteAsync(result);
+            context.Response.ContentType = "application/json; charset=utf-8";
+            context.Response.StatusCode = statusCode;
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = false
+            };
+
+            await context.Response.WriteAsync(JsonSerializer.Serialize(response, options));
         }
     }
 }
