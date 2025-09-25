@@ -5,8 +5,8 @@ namespace AutoPartsStore.Core.Interfaces
     public interface IUserService
     {
         Task<User> GetUserByIdAsync(int userId);
-        Task<User> GetUserByUsernameAsync(string username);
-        Task<bool> UsernameExistsAsync(string username);
+        Task<User> GetUserByEmailAsync(string email);
         Task<bool> EmailExistsAsync(string email);
+        Task<List<UserRole>> GetUserRolesAsync(int userId);
     }
 }

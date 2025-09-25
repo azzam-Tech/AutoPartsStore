@@ -1,9 +1,12 @@
 using AutoPartsStore.Core.Interfaces;
 using AutoPartsStore.Core.Interfaces.IRepositories;
 using AutoPartsStore.Core.Interfaces.IServices;
+using AutoPartsStore.Core.Interfaces.IServices.IEmailSirvices;
 using AutoPartsStore.Infrastructure.Data;
 using AutoPartsStore.Infrastructure.Repositories;
 using AutoPartsStore.Infrastructure.Services;
+using AutoPartsStore.Infrastructure.Services.EmailServices;
+using AutoPartsStore.Infrastructure.Utils;
 using AutoPartsStore.Web.Extensions;
 using AutoPartsStore.Web.Middleware;
 using AutoPartsStore.Web.Middlewares;
@@ -124,7 +127,10 @@ builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
 builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
 builder.Services.AddScoped<IFavoriteService, FavoriteService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddRateLimiting(builder.Configuration);
+builder.Services.AddScoped<JwtTokenGenerator>();
+
 
 
 // ﬁ—«¡… ≈⁄œ«œ«  JWT „‰ Configuration

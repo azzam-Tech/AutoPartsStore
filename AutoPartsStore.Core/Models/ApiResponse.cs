@@ -39,11 +39,12 @@
             return new ApiResponse
             {
                 Success = true,
-                Message = message
+                Message = message,
+                Errors = new List<string>()
             };
         }
 
-        public static ApiResponse FailureResult(string message, List<string> errors = null)
+        public static ApiResponse FailureResult(string message, List<string>? errors = null)
         {
             return new ApiResponse
             {

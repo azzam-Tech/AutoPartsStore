@@ -26,117 +26,116 @@ namespace AutoPartsStore.Web.Controllers
             _configuration = configuration;
         }
 
-        [HttpPost("create-admin")]
-        [AllowAnonymous] // يسمح بالوصول بدون authentication
-        public async Task<IActionResult> CreateEmergencyAdmin([FromBody] EmergencyAdminRequest request)
-        {
-            try
-            {
-                _logger.LogInformation("محاولة إنشاء مسؤول طوارئ من IP: {RemoteIpAddress}", 
-                    HttpContext.Connection.RemoteIpAddress);
+        //[HttpPost("create-admin")]
+        //[AllowAnonymous] // يسمح بالوصول بدون authentication
+        //public async Task<IActionResult> CreateEmergencyAdmin([FromBody] EmergencyAdminRequest request)
+        //{
+        //    try
+        //    {
+        //        _logger.LogInformation("محاولة إنشاء مسؤول طوارئ من IP: {RemoteIpAddress}", 
+        //            HttpContext.Connection.RemoteIpAddress);
 
-               // القراءة من Environment Variables أولاً، ثم من Configuration
-               var emergencyKey = Environment.GetEnvironmentVariable("EMERGENCY_ADMIN_KEY")
-                                 ?? _configuration["EmergencySettings:AdminKey"];
+        //       // القراءة من Environment Variables أولاً، ثم من Configuration
+        //       var emergencyKey = Environment.GetEnvironmentVariable("EMERGENCY_ADMIN_KEY")
+        //                         ?? _configuration["EmergencySettings:AdminKey"];
 
-                if (string.IsNullOrEmpty(emergencyKey))
-                {
-                    _logger.LogCritical("مفتاح الطوارئ غير مضبوط في النظام");
-                    return StatusCode(500, "نظام الطوارئ غير مهيء. يرجى الاتصال بالدعم.");
-                }
+        //        if (string.IsNullOrEmpty(emergencyKey))
+        //        {
+        //            _logger.LogCritical("مفتاح الطوارئ غير مضبوط في النظام");
+        //            return StatusCode(500, "نظام الطوارئ غير مهيء. يرجى الاتصال بالدعم.");
+        //        }
 
-                if (request.EmergencyKey != emergencyKey)
-                {
-                    _logger.LogWarning("مفتاح طوارئ غير صحيح من IP: {RemoteIpAddress}", 
-                        HttpContext.Connection.RemoteIpAddress);
-                    return Unauthorized("مفتاح طوارئ غير صحيح");
-                }
+        //        if (request.EmergencyKey != emergencyKey)
+        //        {
+        //            _logger.LogWarning("مفتاح طوارئ غير صحيح من IP: {RemoteIpAddress}", 
+        //                HttpContext.Connection.RemoteIpAddress);
+        //            return Unauthorized("مفتاح طوارئ غير صحيح");
+        //        }
 
-                // التحقق من صحة البيانات
-                if (string.IsNullOrEmpty(request.Username) || 
-                    string.IsNullOrEmpty(request.Password) ||
-                    string.IsNullOrEmpty(request.Email))
-                {
-                    return BadRequest("يجب提供 اسم المستخدم, كلمة المرور, والبريد الإلكتروني");
-                }
+        //        // التحقق من صحة البيانات
+        //        if (string.IsNullOrEmpty(request.Username) || 
+        //            string.IsNullOrEmpty(request.Password) ||
+        //            string.IsNullOrEmpty(request.Email))
+        //        {
+        //            return BadRequest("يجب提供 اسم المستخدم, كلمة المرور, والبريد الإلكتروني");
+        //        }
 
-                if (request.Password.Length < 8)
-                {
-                    return BadRequest("كلمة المرور يجب أن تكون至少 8 أحرف");
-                }
+        //        if (request.Password.Length < 8)
+        //        {
+        //            return BadRequest("كلمة المرور يجب أن تكون至少 8 أحرف");
+        //        }
 
-                // تحقق إذا يوجد أي مسؤولين بالفعل
-                var existingAdmins = await _context.UserRoleAssignments
-                    .Include(ura => ura.Role)
-                    .Where(ura => ura.Role.RoleName == "Admin")
-                    .AnyAsync();
+        //        // تحقق إذا يوجد أي مسؤولين بالفعل
+        //        var existingAdmins = await _context.UserRoleAssignments
+        //            .Include(ura => ura.Role)
+        //            .Where(ura => ura.Role.RoleName == "Admin")
+        //            .AnyAsync();
 
-                if (existingAdmins)
-                {
-                    _logger.LogWarning("محاولة إنشاء مسؤول طوارئ مع وجود مسؤولين بالفعل");
-                    return BadRequest("يوجد مسؤولون بالفعل في النظام");
-                }
+        //        if (existingAdmins)
+        //        {
+        //            _logger.LogWarning("محاولة إنشاء مسؤول طوارئ مع وجود مسؤولين بالفعل");
+        //            return BadRequest("يوجد مسؤولون بالفعل في النظام");
+        //        }
 
-                // التحقق من عدم وجود مستخدم بنفس البيانات
-                var existingUser = await _context.Users
-                    .FirstOrDefaultAsync(u => u.Username == request.Username || u.Email == request.Email);
+        //        // التحقق من عدم وجود مستخدم بنفس البيانات
+        //        var existingUser = await _context.Users
+        //            .FirstOrDefaultAsync(u => u.Email == request.Email);
 
-                if (existingUser != null)
-                {
-                    _logger.LogWarning("محاولة إنشاء مسؤول ببيانات موجودة مسبقاً: {Username}", request.Username);
-                    return BadRequest("اسم المستخدم أو البريد الإلكتروني مسجل مسبقاً");
-                }
+        //        if (existingUser != null)
+        //        {
+        //            _logger.LogWarning("محاولة إنشاء مسؤول ببيانات موجودة مسبقاً: {Username}", request.Username);
+        //            return BadRequest("اسم المستخدم أو البريد الإلكتروني مسجل مسبقاً");
+        //        }
 
-                // إنشاء المسؤول الجديد
-                var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        //        // إنشاء المسؤول الجديد
+        //        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-                var adminUser = new User(
-                    request.Username,
-                    hashedPassword,
-                    request.Email,
-                    request.FullName ?? "مسؤول الطوارئ",
-                    request.PhoneNumber ?? "0000000000"
-                );
+        //        var adminUser = new User(
+        //            request.Username,
+        //            hashedPassword,
+        //            request.Email,
+        //            request.FullName ?? "مسؤول الطوارئ",
+        //            request.PhoneNumber ?? "0000000000"
+        //        );
 
-                adminUser.Activate();
-                adminUser.Restore();
+        //        adminUser.Activate();
+        //        adminUser.Restore();
 
-                _context.Users.Add(adminUser);
-                await _context.SaveChangesAsync();
+        //        _context.Users.Add(adminUser);
+        //        await _context.SaveChangesAsync();
 
-                // البحث عن دور Admin أو إنشائه إذا لم exists
-                var adminRole = await _context.UserRoles
-                    .FirstOrDefaultAsync(r => r.RoleName == "Admin");
+        //        // البحث عن دور Admin أو إنشائه إذا لم exists
+        //        var adminRole = await _context.UserRoles
+        //            .FirstOrDefaultAsync(r => r.RoleName == "Admin");
 
-                if (adminRole == null)
-                {
-                    adminRole = new UserRole("Admin", "مسؤول النظام");
-                    _context.UserRoles.Add(adminRole);
-                    await _context.SaveChangesAsync();
-                }
+        //        if (adminRole == null)
+        //        {
+        //            adminRole = new UserRole("Admin", "مسؤول النظام");
+        //            _context.UserRoles.Add(adminRole);
+        //            await _context.SaveChangesAsync();
+        //        }
 
-                // منح دور Admin
-                var adminAssignment = new UserRoleAssignment(adminUser.Id, adminRole.Id);
-                _context.UserRoleAssignments.Add(adminAssignment);
-                await _context.SaveChangesAsync();
+        //        // منح دور Admin
+        //        var adminAssignment = new UserRoleAssignment(adminUser.Id, adminRole.Id);
+        //        _context.UserRoleAssignments.Add(adminAssignment);
+        //        await _context.SaveChangesAsync();
 
-                _logger.LogCritical("تم إنشاء مسؤول طوارئ بنجاح: {Username} ({Email})", 
-                    request.Username, request.Email);
+        //        _logger.LogCritical("تم إنشاء مسؤول طوارئ بنجاح: {Username} ({Email})", 
+        //            request.Username, request.Email);
 
-                return Success(new 
-                {
-                    Username = adminUser.Username,
-                    Email = adminUser.Email,
-                    UserId = adminUser.Id,
-                    CreatedAt = DateTime.UtcNow
-                }, "تم إنشاء المسؤول بنجاح");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "خطأ غير متوقع أثناء إنشاء مسؤول الطوارئ");
-                return StatusCode(500, "حدث خطأ داخلي أثناء إنشاء المسؤول");
-            }
-        }
+        //        return Success(new 
+        //        {
+        //            Email = adminUser.Email,
+        //            UserId = adminUser.Id,
+        //            CreatedAt = DateTime.UtcNow
+        //        }, "تم إنشاء المسؤول بنجاح");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "خطأ غير متوقع أثناء إنشاء مسؤول الطوارئ");
+        //        return StatusCode(500, "حدث خطأ داخلي أثناء إنشاء المسؤول");
+        //    }
+        //}
 
         [HttpGet("system-status")]
         [AllowAnonymous]
