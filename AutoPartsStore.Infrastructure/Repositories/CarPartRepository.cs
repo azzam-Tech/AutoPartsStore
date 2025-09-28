@@ -1,5 +1,6 @@
 ﻿using AutoPartsStore.Core.Entities;
 using AutoPartsStore.Core.Interfaces;
+using AutoPartsStore.Core.Models;
 using AutoPartsStore.Core.Models.CarPart;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -46,7 +47,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<CarPartDto>> GetFilteredAsync(CarPartFilter filter)
+        public async Task<PagedResult<CarPartDto>> GetFilteredAsync(CarPartFilter filter)
         {
             var query = _context.CarParts
                 .Where(p => !p.IsDeleted)
@@ -58,9 +59,9 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 query = query.Where(p =>
                     p.PartNumber.Contains(filter.SearchTerm) ||
                     p.PartName.Contains(filter.SearchTerm) ||
-                    p.Description.Contains(filter.SearchTerm) ||
-                    p.CarBrand.Contains(filter.SearchTerm) ||
-                    p.CarModel.Contains(filter.SearchTerm));
+                   (p.Description != null && p.Description.Contains(filter.SearchTerm)) ||
+                   (p.CarBrand != null && p.CarBrand.Contains(filter.SearchTerm)) ||
+                   (p.CarModel != null && p.CarModel.Contains(filter.SearchTerm)));
             }
 
             if (filter.CategoryId.HasValue)
@@ -104,31 +105,44 @@ namespace AutoPartsStore.Infrastructure.Repositories
             query = query.Skip((filter.Page - 1) * filter.PageSize)
                        .Take(filter.PageSize);
 
-            return await query.Select(p => new CarPartDto
+            var result =  await query.Select(p => new CarPartDto
+                        {
+                            Id = p.Id,
+                            PartNumber = p.PartNumber,
+                            PartName = p.PartName,
+                            Description = p.Description,
+                            CarBrand = p.CarBrand,
+                            CarModel = p.CarModel,
+                            CarYear = p.CarYear,
+                            UnitPrice = p.UnitPrice,
+                            DiscountPercent = p.DiscountPercent,
+                            FinalPrice = p.GetFinalPrice(),
+                            StockQuantity = p.StockQuantity,
+                            IsActive = p.IsActive,
+                            IsInStock = p.IsInStock(),
+                            IsOnSale = p.IsOnSale(),
+                            ImageUrl = p.ImageUrl,
+                            CategoryId = p.CategoryId,
+                            CategoryName = p.Category.CategoryName,
+                            AverageRating = p.Reviews
+                                    .Where(r => r.IsApproved)
+                                    .Average(r => (double?)r.Rating) ?? 0,
+                            ReviewCount = p.Reviews.Count(r => r.IsApproved)
+                        }).ToListAsync();
+
+            var count = await GetTotalCountAsync(filter);
+
+            PagedResult<CarPartDto> pagedResult = new ()
             {
-                Id = p.Id,
-                PartNumber = p.PartNumber,
-                PartName = p.PartName,
-                Description = p.Description,
-                CarBrand = p.CarBrand,
-                CarModel = p.CarModel,
-                CarYear = p.CarYear,
-                UnitPrice = p.UnitPrice,
-                DiscountPercent = p.DiscountPercent,
-                FinalPrice = p.GetFinalPrice(),
-                StockQuantity = p.StockQuantity,
-                IsActive = p.IsActive,
-                IsInStock = p.IsInStock(),
-                IsOnSale = p.IsOnSale(),
-                ImageUrl = p.ImageUrl,
-                CategoryId = p.CategoryId,
-                CategoryName = p.Category.CategoryName,
-                AverageRating = p.Reviews
-                        .Where(r => r.IsApproved)
-                        .Average(r => (double?)r.Rating) ?? 0,
-                ReviewCount = p.Reviews.Count(r => r.IsApproved)
-            })
-                .ToListAsync();
+                Items = result,
+                CurrentPage = filter.Page,
+                PageSize = filter.PageSize,
+                TotalCount = count,
+                TotalPages = (int)Math.Ceiling((double)count / filter.PageSize)
+
+            };
+
+            return pagedResult;
         }
 
         public async Task<IEnumerable<CarPartDto>> GetByCategoryAsync(int categoryId)
@@ -206,21 +220,40 @@ namespace AutoPartsStore.Infrastructure.Repositories
             var query = _context.CarParts
                 .Where(p => !p.IsDeleted && p.IsActive);
 
-            // Apply the same filters as GetFilteredAsync
+            // Apply filters
             if (!string.IsNullOrEmpty(filter.SearchTerm))
             {
                 query = query.Where(p =>
                     p.PartNumber.Contains(filter.SearchTerm) ||
                     p.PartName.Contains(filter.SearchTerm) ||
-                    p.Description.Contains(filter.SearchTerm) ||
-                    p.CarBrand.Contains(filter.SearchTerm) ||
-                    p.CarModel.Contains(filter.SearchTerm));
+                   (p.Description != null && p.Description.Contains(filter.SearchTerm)) ||
+                   (p.CarBrand != null && p.CarBrand.Contains(filter.SearchTerm)) ||
+                   (p.CarModel != null && p.CarModel.Contains(filter.SearchTerm)));
             }
 
             if (filter.CategoryId.HasValue)
                 query = query.Where(p => p.CategoryId == filter.CategoryId);
 
-            // ... other filters
+            if (!string.IsNullOrEmpty(filter.CarBrand))
+                query = query.Where(p => p.CarBrand == filter.CarBrand);
+
+            if (!string.IsNullOrEmpty(filter.CarModel))
+                query = query.Where(p => p.CarModel == filter.CarModel);
+
+            if (filter.MinPrice.HasValue)
+                query = query.Where(p => p.UnitPrice >= filter.MinPrice);
+
+            if (filter.MaxPrice.HasValue)
+                query = query.Where(p => p.UnitPrice <= filter.MaxPrice);
+
+            if (filter.InStock.HasValue)
+                query = query.Where(p => p.IsInStock() == filter.InStock);
+
+            if (filter.OnSale.HasValue)
+                query = query.Where(p => p.IsOnSale() == filter.OnSale);
+
+            if (filter.IsActive.HasValue)
+                query = query.Where(p => p.IsActive == filter.IsActive);
 
             return await query.CountAsync();
         }

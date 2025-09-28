@@ -37,17 +37,16 @@ namespace AutoPartsStore.Infrastructure.Utils
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
-            {
-             new Claim(JwtRegisteredClaimNames.Sub, userId),
-             new Claim(JwtRegisteredClaimNames.Email, email),
-             new Claim("FullName", fullName),
-             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+            var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim("FullName", user.FullName)
+                };
 
             foreach (var role in userRoles)
             {
-                claims = claims.Append(new Claim(ClaimTypes.Role, role.RoleName)).ToArray();
+                claims.Add(new Claim(ClaimTypes.Role, role.RoleName));
             }
 
             var token = new JwtSecurityToken(

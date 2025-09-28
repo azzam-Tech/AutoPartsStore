@@ -32,7 +32,7 @@ namespace AutoPartsStore.Infrastructure.Services.EmailServices
             {
                 From = new MailAddress(smtpSettings["Username"]),
                 Subject = "رمز التحقق الخاص بك",
-                Body = $"رمز التحقق الخاص بك هو: {code}\n\nهذا الرمز صالح لمدة 10 دقائق.",
+                Body = $"رمز التحقق الخاص بك هو: {code}\n\nهذا الرمز صالح لمدة 2 دقائق.",
                 IsBodyHtml = false,
             };
 

@@ -2,6 +2,7 @@ using AutoPartsStore.Core.Interfaces;
 using AutoPartsStore.Core.Interfaces.IRepositories;
 using AutoPartsStore.Core.Interfaces.IServices;
 using AutoPartsStore.Core.Interfaces.IServices.IEmailSirvices;
+using AutoPartsStore.Core.Models;
 using AutoPartsStore.Infrastructure.Data;
 using AutoPartsStore.Infrastructure.Repositories;
 using AutoPartsStore.Infrastructure.Services;
@@ -10,6 +11,7 @@ using AutoPartsStore.Infrastructure.Utils;
 using AutoPartsStore.Web.Extensions;
 using AutoPartsStore.Web.Middleware;
 using AutoPartsStore.Web.Middlewares;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -161,6 +163,46 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
         RequireExpirationTime = true
+
+
+    };
+
+
+    jwtOptions.Events = new JwtBearerEvents
+    {
+        OnChallenge = async context =>
+        {
+            // „‰⁄ ≈—”«· "WWW-Authenticate: Bearer"
+            context.HandleResponse();
+
+            //  ÂÌ∆… «·—œ «·„ÊÕœ
+            var response = new ApiResponse
+            {
+                Success = false,
+                Message = "€Ì— „’—Õ. Ì—ÃÏ  ”ÃÌ· «·œŒÊ·.",
+                Errors = new List<string> { "«·—Ã«¡  ÷„Ì‰  Êﬂ‰ ’«·Õ ›Ì —√” «·ÿ·» (Authorization: Bearer <token>)" }
+            };
+
+            context.Response.ContentType = "application/json; charset=utf-8";
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+            await context.Response.WriteAsJsonAsync(response);
+        },
+
+        OnAuthenticationFailed = async context =>
+        {
+            var response = new ApiResponse
+            {
+                Success = false,
+                Message = "›‘· «· Õﬁﬁ „‰ «·ÂÊÌ….",
+                Errors = new List<string> { "«· Êﬂ‰ €Ì— ’«·Õ √Ê „‰ ÂÌ «·’·«ÕÌ…." }
+            };
+
+            context.Response.ContentType = "application/json; charset=utf-8";
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+            await context.Response.WriteAsJsonAsync(response);
+        }
     };
 });
 

@@ -1,5 +1,6 @@
 ﻿using AutoPartsStore.Core.Entities;
 using AutoPartsStore.Core.Interfaces;
+using AutoPartsStore.Core.Models;
 using AutoPartsStore.Core.Models.CarPart;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +26,7 @@ namespace AutoPartsStore.Infrastructure.Services
             return await _partRepository.GetByIdWithDetailsAsync(id);
         }
 
-        public async Task<IEnumerable<CarPartDto>> GetFilteredAsync(CarPartFilter filter)
+        public async Task<PagedResult<CarPartDto>> GetFilteredAsync(CarPartFilter filter)
         {
             return await _partRepository.GetFilteredAsync(filter);
         }

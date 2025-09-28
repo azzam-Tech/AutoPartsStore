@@ -1,4 +1,5 @@
 ﻿using AutoPartsStore.Core.Entities;
+using AutoPartsStore.Core.Models;
 using AutoPartsStore.Core.Models.CarPart;
 
 namespace AutoPartsStore.Core.Interfaces
@@ -6,7 +7,7 @@ namespace AutoPartsStore.Core.Interfaces
     public interface ICarPartRepository : IBaseRepository<CarPart>
     {
         Task<CarPartDto> GetByIdWithDetailsAsync(int id);
-        Task<IEnumerable<CarPartDto>> GetFilteredAsync(CarPartFilter filter);
+        Task<PagedResult<CarPartDto>> GetFilteredAsync(CarPartFilter filter);
         Task<IEnumerable<CarPartDto>> GetByCategoryAsync(int categoryId);
         Task<IEnumerable<CarPartDto>> GetFeaturedAsync(int count);
         Task<bool> PartNumberExistsAsync(string partNumber, int? excludeId = null);

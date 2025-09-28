@@ -1,11 +1,12 @@
-﻿using AutoPartsStore.Core.Models.CarPart;
+﻿using AutoPartsStore.Core.Models;
+using AutoPartsStore.Core.Models.CarPart;
 
 namespace AutoPartsStore.Core.Interfaces
 {
     public interface ICarPartService
     {
         Task<CarPartDto> GetByIdAsync(int id);
-        Task<IEnumerable<CarPartDto>> GetFilteredAsync(CarPartFilter filter);
+        Task<PagedResult<CarPartDto>> GetFilteredAsync(CarPartFilter filter);
         Task<IEnumerable<CarPartDto>> GetFeaturedAsync(int count = 8);
         Task<CarPartDto> CreateAsync(CreateCarPartRequest request);
         Task<CarPartDto> UpdateAsync(int id, UpdateCarPartRequest request);

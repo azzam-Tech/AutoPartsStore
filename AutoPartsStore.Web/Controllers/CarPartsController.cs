@@ -19,7 +19,6 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous]
         public async Task<IActionResult> GetFiltered([FromQuery] CarPartFilter filter)
         {
             var parts = await _partService.GetFilteredAsync(filter);

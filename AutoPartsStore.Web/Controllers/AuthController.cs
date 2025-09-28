@@ -85,10 +85,20 @@ public class AuthController : BaseController
 
     }
 
-    //[HttpPost("complete-registration")]
-    //public async Task<IActionResult> CompleteRegistration([FromBody] CompleteRegistrationRequest request)
-    //{
-    //    return await Ok();
-    //}
+    [HttpPost("complete-registration")]
+    public async Task<IActionResult> CompleteRegistration([FromBody] CompleteRegistrationRequest request)
+    {
+        var result = await _authService.CompleteRegistration(request);
+        if (!result.Success)
+            return BadRequest("حدث مشكلة اثناء انشاء الحساب");
+
+        return Success(new LoginInfo
+        {
+            login = true,
+            accessToken = result.AccessToken,
+            expiresAt = result.ExpiresAt,
+            userInfo = result.UserInfo
+        }, "تم إنشاء الحساب وتسجيل الدخول بنجاح");
+    }
 
 }

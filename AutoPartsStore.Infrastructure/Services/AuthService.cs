@@ -44,7 +44,7 @@ namespace AutoPartsStore.Infrastructure.Services
             if (user == null)
             {
                 // مستخدم جديد — ننشئ سجل مؤقت
-                User newUser = new User(email: request.Email, fullName: "New User", phoneNumber: "000000000000")
+                User newUser = new User(email: request.Email, fullName: "", phoneNumber: "")
                 {
                     VerificationCode = code,
                     VerificationCodeExpiry = DateTime.UtcNow.AddMinutes(2),
