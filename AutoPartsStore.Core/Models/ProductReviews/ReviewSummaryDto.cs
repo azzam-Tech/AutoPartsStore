@@ -3,7 +3,7 @@
     public class ReviewSummaryDto
     {
         public int PartId { get; set; }
-        public string PartName { get; set; }
+        public string PartName { get; set; } = null!;
         public double AverageRating { get; set; }
         public int TotalReviews { get; set; }
         public int FiveStar { get; set; }

@@ -95,7 +95,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                         })
                         .ToList() ?? null
                 })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync() ?? throw new InvalidOperationException("Category not found.");
         }
 
         public async Task<bool> CategoryExistsAsync(string categoryName, int? excludeId = null)
@@ -126,5 +126,38 @@ namespace AutoPartsStore.Infrastructure.Repositories
             return await _context.CarParts
                 .CountAsync(cp => cp.CategoryId == categoryId && !cp.IsDeleted);
         }
+
+        //public async Task<IEnumerable<PartCategoryDto>> GetAllCategoriesAsync()
+        //{
+        //    var categories = await _context.PartCategories
+        //        .Where(pc => !pc.IsDeleted && pc.IsActive)
+        //        .Include(pc => pc.CarParts)
+        //        .Include(pc => pc.SubCategories)
+        //        .ToListAsync();
+
+        //    var rootCategories = categories.Where(c => c.ParentCategoryId == null);
+
+        //    return rootCategories.Select(c => MapToDto(c, categories)).ToList();
+        //}
+
+        //private PartCategoryDto MapToDto(PartCategory category, List<PartCategory> allCategories)
+        //{
+        //    return new PartCategoryDto
+        //    {
+        //        Id = category.Id,
+        //        CategoryName = category.CategoryName,
+        //        ParentCategoryId = category.ParentCategoryId,
+        //        ParentCategoryName = category.ParentCategory?.CategoryName,
+        //        Description = category.Description,
+        //        ImageUrl = category.ImageUrl,
+        //        IsActive = category.IsActive,
+        //        ProductsCount = category.CarParts.Count(cp => !cp.IsDeleted),
+        //        SubCategories = allCategories
+        //            .Where(c => c.ParentCategoryId == category.Id && c.IsActive && !c.IsDeleted)
+        //            .Select(c => MapToDto(c, allCategories))
+        //            .ToList()
+        //    };
+        //}
+
     }
 }
