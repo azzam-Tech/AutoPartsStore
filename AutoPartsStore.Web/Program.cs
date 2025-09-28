@@ -136,7 +136,7 @@ builder.Services.AddScoped<JwtTokenGenerator>();
 
 
 // чягаи езогогй JWT ЦД Configuration
-var jwtKey =  builder.Configuration["Jwt:Key"]
+var jwtKey = builder.Configuration["Jwt:Key"]
              ?? throw new InvalidOperationException("JWT Key is not configured.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AutoPartsStore.Api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AutoPartsStore.Client";

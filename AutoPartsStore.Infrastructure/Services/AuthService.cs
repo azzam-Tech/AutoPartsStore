@@ -7,18 +7,14 @@ using AutoPartsStore.Infrastructure.Data;
 using AutoPartsStore.Infrastructure.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace AutoPartsStore.Infrastructure.Services
 {
     public class AuthService : IAuthService
     {
         private readonly AppDbContext _context;
-            private readonly IUserService _userService;
+        private readonly IUserService _userService;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
         private readonly JwtTokenGenerator _jwtTokenGenerator;
@@ -100,7 +96,7 @@ namespace AutoPartsStore.Infrastructure.Services
             {
                 // يحتاج لإكمال التسجيل
                 return new AuthenticationResult
-                {   
+                {
                     Success = false,
                     Message = "التحقق ناجح. يرجى إكمال التسجيل.",
                     AccessToken = null,

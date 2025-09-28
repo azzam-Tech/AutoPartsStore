@@ -44,7 +44,8 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     //    .Where(ci => ci.Cart.Order != null && ci.Cart.Order.OrderStatus == "Delivered")
                     //    .Sum(ci => ci.Quantity)
                 })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync()
+                ?? throw new InvalidOperationException("Car part not found.");
         }
 
         public async Task<PagedResult<CarPartDto>> GetFilteredAsync(CarPartFilter filter)
@@ -99,40 +100,40 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     _ => query.OrderBy(p => p.PartName)
                 };
             }
-           
+
 
             // Apply pagination
             query = query.Skip((filter.Page - 1) * filter.PageSize)
                        .Take(filter.PageSize);
 
-            var result =  await query.Select(p => new CarPartDto
-                        {
-                            Id = p.Id,
-                            PartNumber = p.PartNumber,
-                            PartName = p.PartName,
-                            Description = p.Description,
-                            CarBrand = p.CarBrand,
-                            CarModel = p.CarModel,
-                            CarYear = p.CarYear,
-                            UnitPrice = p.UnitPrice,
-                            DiscountPercent = p.DiscountPercent,
-                            FinalPrice = p.GetFinalPrice(),
-                            StockQuantity = p.StockQuantity,
-                            IsActive = p.IsActive,
-                            IsInStock = p.IsInStock(),
-                            IsOnSale = p.IsOnSale(),
-                            ImageUrl = p.ImageUrl,
-                            CategoryId = p.CategoryId,
-                            CategoryName = p.Category.CategoryName,
-                            AverageRating = p.Reviews
+            var result = await query.Select(p => new CarPartDto
+            {
+                Id = p.Id,
+                PartNumber = p.PartNumber,
+                PartName = p.PartName,
+                Description = p.Description,
+                CarBrand = p.CarBrand,
+                CarModel = p.CarModel,
+                CarYear = p.CarYear,
+                UnitPrice = p.UnitPrice,
+                DiscountPercent = p.DiscountPercent,
+                FinalPrice = p.GetFinalPrice(),
+                StockQuantity = p.StockQuantity,
+                IsActive = p.IsActive,
+                IsInStock = p.IsInStock(),
+                IsOnSale = p.IsOnSale(),
+                ImageUrl = p.ImageUrl,
+                CategoryId = p.CategoryId,
+                CategoryName = p.Category.CategoryName,
+                AverageRating = p.Reviews
                                     .Where(r => r.IsApproved)
                                     .Average(r => (double?)r.Rating) ?? 0,
-                            ReviewCount = p.Reviews.Count(r => r.IsApproved)
-                        }).ToListAsync();
+                ReviewCount = p.Reviews.Count(r => r.IsApproved)
+            }).ToListAsync();
 
             var count = await GetTotalCountAsync(filter);
 
-            PagedResult<CarPartDto> pagedResult = new ()
+            PagedResult<CarPartDto> pagedResult = new()
             {
                 Items = result,
                 CurrentPage = filter.Page,
