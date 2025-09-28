@@ -19,7 +19,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
             if (filter.isActive.HasValue)
                 query = query.Where(p => p.IsActive == filter.isActive);
             if (filter.discountType.HasValue)
-                query =query.Where(p => p.DiscountType == filter.discountType);
+                query = query.Where(p => p.DiscountType == filter.discountType);
 
             var totalCount = _context.Promotions.Count(p => !p.IsDeleted); ;
             if (filter.isActive.HasValue)
@@ -78,9 +78,9 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
                     IsActiveNow = p.IsActiveNow(),
-                    ProductCount = p.CarParts.Count
+                    ProductCount = p.CarParts != null ? p.CarParts.Count : 0
                 })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync() ?? throw new KeyNotFoundException("Promotion not found");
         }
 
         public async Task<IEnumerable<PromotionDto>> GetActivePromotionsAsync()

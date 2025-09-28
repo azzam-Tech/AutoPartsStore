@@ -1,10 +1,7 @@
 ﻿using AutoPartsStore.Core.Entities;
 using AutoPartsStore.Core.Interfaces;
-using AutoPartsStore.Core.Models.Promotions;
 using AutoPartsStore.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualBasic;
 
 namespace AutoPartsStore.Infrastructure.Services
 {
@@ -29,7 +26,7 @@ namespace AutoPartsStore.Infrastructure.Services
             try
             {
                 decimal finalPrice = 0;
-                
+
                 if (carPart.DiscountPercent > 0)
                 {
                     // الأولوية للخصم الخاص بالمنتج
@@ -53,7 +50,7 @@ namespace AutoPartsStore.Infrastructure.Services
                 }
                 else
                 {
-                    if(promotion.IsActive || promotion.IsActiveNow())
+                    if (promotion.IsActive || promotion.IsActiveNow())
                     {
                         finalPrice = CalculatePriceWithPromotion(carPart.UnitPrice, promotion);
                         carPart.UpdateFinalPrice(finalPrice);
@@ -76,7 +73,7 @@ namespace AutoPartsStore.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error calculating final price for part {CarPartId}",carPart.Id);
+                _logger.LogError(ex, "Error calculating final price for part {CarPartId}", carPart.Id);
                 throw;
             }
         }
