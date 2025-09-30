@@ -97,6 +97,9 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     SortBy.price => filter.SortDescending != null && filter.SortDescending.Value ? query.OrderByDescending(p => p.UnitPrice) : query.OrderBy(p => p.UnitPrice),
                     SortBy.name => filter.SortDescending != null && filter.SortDescending.Value ? query.OrderByDescending(p => p.PartName) : query.OrderBy(p => p.PartName),
                     SortBy.newest => query.OrderByDescending(p => p.CreatedAt),
+                    SortBy.rating => query.OrderByDescending(p => p.Reviews
+                               .Where(r => r.IsApproved)
+                               .Average(r => (double?)r.Rating) ?? 0),
                     _ => query.OrderBy(p => p.PartName)
                 };
             }
