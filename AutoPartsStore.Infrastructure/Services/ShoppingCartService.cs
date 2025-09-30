@@ -11,24 +11,65 @@ namespace AutoPartsStore.Infrastructure.Services
     {
         private readonly IShoppingCartRepository _shoppingCartRepository;
         private readonly ICartItemRepository _cartItemRepository;
+        private readonly IPricingService _pricingService;
         private readonly AppDbContext _context;
         private readonly ILogger<ShoppingCartService> _logger;
 
         public ShoppingCartService(
             IShoppingCartRepository shoppingCartRepository,
             ICartItemRepository cartItemRepository,
+            IPricingService pricingService,
             AppDbContext context,
             ILogger<ShoppingCartService> logger)
         {
             _shoppingCartRepository = shoppingCartRepository;
             _cartItemRepository = cartItemRepository;
+            _pricingService = pricingService;
             _context = context;
             _logger = logger;
         }
 
         public async Task<ShoppingCartDto> GetUserCartAsync(int userId)
         {
-            return await _shoppingCartRepository.GetCartByUserIdAsync(userId);
+            return await _context.ShoppingCarts
+                           .Where(sc => sc.UserId == userId)
+                           .Select(cart => new ShoppingCartDto
+                           {
+                               Id = cart.Id,
+                               UserId = cart.UserId,
+                               UserName = cart.User.FullName,
+                               CreatedDate = cart.CreatedDate,
+                               LastUpdated = cart.LastUpdated,
+                               TotalItems = cart.Items.Sum(ci => ci.Quantity),
+                               TotalPrice = cart.Items.Sum(ci => ci.CarPart.UnitPrice * ci.Quantity),
+                               //TotalDiscount = cart.Items.Sum(ci => ci.CarPart.DiscountPercent == 0 && ci.CarPart.Promotion != null ? _pricingService.CalculateTotalDiscount(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity) : (ci.CarPart.UnitPrice * ci.CarPart.DiscountPercent / 100) * ci.Quantity),
+                               //FinalTotal = cart.Items.Sum(ci => ci.CarPart.DiscountPercent == 0 && ci.CarPart.Promotion != null ? _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity) : _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, DiscountType.Percent, ci.CarPart.DiscountPercent, ci.Quantity)),
+                               TotalDiscount = 0,
+                               FinalTotal = 0,
+                               Items = cart.Items.Select(ci => new CartItemDto
+                               {
+                                   Id = ci.Id,
+                                   CartId = ci.CartId,
+                                   PartId = ci.PartId,
+                                   PartNumber = ci.CarPart.PartNumber,
+                                   PartName = ci.CarPart.PartName,
+                                   ImageUrl = ci.CarPart.ImageUrl,
+                                   UnitPrice = ci.CarPart.UnitPrice,
+                                   DiscountPercent = ci.CarPart.DiscountPercent,
+                                   HasPromotion = ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow(),
+                                   PromotionName = ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow() ? ci.CarPart.Promotion.PromotionName : null,
+                                   DiscountType = ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow() ? ci.CarPart.Promotion.DiscountType : null,
+                                   DiscountValue = ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow() ? ci.CarPart.Promotion.DiscountValue : 0,
+                                   FinalPrice = ci.CarPart.DiscountPercent == 0 && ci.CarPart.Promotion != null ? _pricingService.CalculateFinalPrice(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue) : _pricingService.CalculateFinalPrice(ci.CarPart.UnitPrice, DiscountType.Percent, ci.CarPart.DiscountPercent),
+                                   Quantity = ci.Quantity,
+                                   TotalPrice = ci.CarPart.UnitPrice * ci.Quantity,
+                                   TotalDiscount = ci.CarPart.DiscountPercent == 0 && ci.CarPart.Promotion != null ? _pricingService.CalculateTotalDiscount(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity)  : (ci.CarPart.UnitPrice * ci.CarPart.DiscountPercent / 100) * ci.Quantity,
+                                   FinalTotal = ci.CarPart.DiscountPercent == 0 && ci.CarPart.Promotion != null ? _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity) : _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, DiscountType.Percent, ci.CarPart.DiscountPercent, ci.Quantity),
+                                   CreatedAt = ci.CreatedAt,
+                                   IsAvailable = ci.CarPart.IsInStock(),
+                                   AvailableStock = ci.CarPart.StockQuantity
+                               }).ToList()
+                           }).FirstOrDefaultAsync() ?? throw new DirectoryNotFoundException("Car part not found.");
         }
 
         public async Task<CartItemDto> AddItemToCartAsync(int userId, AddToCartRequest request)

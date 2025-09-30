@@ -26,6 +26,10 @@ namespace AutoPartsStore.Web.Controllers
         {
             var userId = GetAuthenticatedUserId();
             var cart = await _shoppingCartService.GetUserCartAsync(userId);
+            if (cart == null)
+            {
+                return NotFound("Shopping cart not found.");
+            }
             return Success(cart);
         }
 
