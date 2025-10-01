@@ -5,8 +5,8 @@ namespace AutoPartsStore.Core.Models.Promotions
     public class PromotionDto
     {
         public int Id { get; set; }
-        public string PromotionName { get; set; }
-        public string Description { get; set; }
+        public string PromotionName { get; set; } = null!;
+        public string? Description { get; set; }
         public DiscountType DiscountType { get; set; }
         public decimal DiscountValue { get; set; }
         public DateTime StartDate { get; set; }

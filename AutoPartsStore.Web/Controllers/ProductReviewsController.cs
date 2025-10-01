@@ -20,6 +20,14 @@ namespace AutoPartsStore.Web.Controllers
             _logger = logger;
         }
 
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllReviews([FromQuery] bool? approvedOnly)
+        {
+            var reviews = await _reviewService.GetReviewsAsync(approvedOnly);
+            return Success(reviews);
+        }
+
         [HttpGet("product/{partId}")]
         [AllowAnonymous]
         public async Task<IActionResult> GetProductReviews(int partId, [FromQuery] bool? approvedOnly = true)

@@ -1,14 +1,21 @@
 using AutoPartsStore.Core.Interfaces;
 using AutoPartsStore.Core.Interfaces.IRepositories;
 using AutoPartsStore.Core.Interfaces.IServices;
+using AutoPartsStore.Core.Interfaces.IServices.IEmailSirvices;
+using AutoPartsStore.Core.Models;
 using AutoPartsStore.Infrastructure.Data;
 using AutoPartsStore.Infrastructure.Repositories;
 using AutoPartsStore.Infrastructure.Services;
+using AutoPartsStore.Infrastructure.Services.EmailServices;
+using AutoPartsStore.Infrastructure.Utils;
 using AutoPartsStore.Web.Extensions;
 using AutoPartsStore.Web.Middleware;
+using AutoPartsStore.Web.Middlewares;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -123,11 +130,16 @@ builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
 builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
 builder.Services.AddScoped<IFavoriteService, FavoriteService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ICustomerFeedbackRepository, CustomerFeedbackRepository>();
+builder.Services.AddScoped<ICustomerFeedbackService, CustomerFeedbackService>();
 builder.Services.AddRateLimiting(builder.Configuration);
+builder.Services.AddScoped<JwtTokenGenerator>();
+
 
 
 // ﬁ—«¡… ≈⁄œ«œ«  JWT „‰ Configuration
-var jwtKey =  builder.Configuration["Jwt:Key"]
+var jwtKey = builder.Configuration["Jwt:Key"]
              ?? throw new InvalidOperationException("JWT Key is not configured.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AutoPartsStore.Api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AutoPartsStore.Client";
@@ -154,6 +166,46 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
         RequireExpirationTime = true
+
+
+    };
+
+
+    jwtOptions.Events = new JwtBearerEvents
+    {
+        OnChallenge = async context =>
+        {
+            // „‰⁄ ≈—”«· "WWW-Authenticate: Bearer"
+            context.HandleResponse();
+
+            //  ÂÌ∆… «·—œ «·„ÊÕœ
+            var response = new ApiResponse
+            {
+                Success = false,
+                Message = "€Ì— „’—Õ. Ì—ÃÏ  ”ÃÌ· «·œŒÊ·.",
+                Errors = new List<string> { "«·—Ã«¡  ÷„Ì‰  Êﬂ‰ ’«·Õ ›Ì —√” «·ÿ·» (Authorization: Bearer <token>)" }
+            };
+
+            context.Response.ContentType = "application/json; charset=utf-8";
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+            await context.Response.WriteAsJsonAsync(response);
+        },
+
+        OnAuthenticationFailed = async context =>
+        {
+            var response = new ApiResponse
+            {
+                Success = false,
+                Message = "›‘· «· Õﬁﬁ „‰ «·ÂÊÌ….",
+                Errors = new List<string> { "«· Êﬂ‰ €Ì— ’«·Õ √Ê „‰ ÂÌ «·’·«ÕÌ…." }
+            };
+
+            context.Response.ContentType = "application/json; charset=utf-8";
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+            await context.Response.WriteAsJsonAsync(response);
+        }
     };
 });
 
@@ -161,9 +213,11 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 app.UseSwagger();
-app.UseSwaggerUI();
-
-
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+    c.DocExpansion(DocExpansion.None);
+});
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
@@ -173,9 +227,9 @@ app.UseRateLimiting();
 
 // ›Ì Program.cs° ﬁ»· app.MapControllers();
 app.UseAdminCheck();
-app.MapControllers();
+app.UseMiddleware<ExceptionMiddleware>();
+app.UseStatusCodeHandling();
 
-// Error Handling
-app.UseExceptionHandler("/error");
+app.MapControllers();
 
 app.Run();

@@ -11,8 +11,8 @@
         public bool IsApproved { get; private set; }
 
         // Navigation
-        public CarPart CarPart { get; private set; }
-        public User User { get; private set; }
+        public CarPart CarPart { get; private set; } = null!;
+        public User User { get; private set; } = null!;
 
         public ProductReview(int partId, int? userId, int rating, string? reviewText = null)
         {

@@ -49,45 +49,26 @@ namespace AutoPartsStore.Web.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            try
-            {
-                var district = await _districtService.CreateAsync(request);
-                return Success(district, "District created successfully");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var district = await _districtService.CreateAsync(request);
+            return Success(district, "District created successfully");
+
         }
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateDistrictRequest request)
         {
-            try
-            {
-                var district = await _districtService.UpdateAsync(id, request);
-                return Success(district, "District updated successfully");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var district = await _districtService.UpdateAsync(id, request);
+            return Success(district, "District updated successfully");
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
-            try
-            {
-                await _districtService.DeleteAsync(id);
-                return Success("District deleted successfully");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+
+            await _districtService.DeleteAsync(id);
+            return Success("District deleted successfully");
         }
     }
 }

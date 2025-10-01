@@ -33,7 +33,7 @@ namespace AutoPartsStore.Infrastructure.Data
         public DbSet<InventoryLog> InventoryLogs { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
-
+        public DbSet<CustomerFeedback> CustomerFeedbacks { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

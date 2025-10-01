@@ -4,6 +4,7 @@
     {
         price = 0,
         name = 1,
-        newest = 2  
+        newest = 2,
+        rating = 3
     }
 }

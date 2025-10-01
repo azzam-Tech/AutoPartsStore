@@ -89,6 +89,10 @@ namespace AutoPartsStore.Web.Controllers
         private int GetAuthenticatedUserId()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                throw new InvalidOperationException("Authenticated user ID claim is missing.");
+            }
             return int.Parse(userIdClaim);
         }
     }

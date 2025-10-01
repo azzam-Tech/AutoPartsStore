@@ -1,10 +1,8 @@
 ﻿using AutoPartsStore.Core.Entities;
-using AutoPartsStore.Core.Models;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace AutoPartsStore.Web.Controllers
 {
@@ -17,8 +15,8 @@ namespace AutoPartsStore.Web.Controllers
         private readonly IConfiguration _configuration;
 
         public EmergencyController(
-            AppDbContext context, 
-            ILogger<EmergencyController> logger, 
+            AppDbContext context,
+            ILogger<EmergencyController> logger,
             IConfiguration configuration)
         {
             _context = context;
@@ -32,12 +30,12 @@ namespace AutoPartsStore.Web.Controllers
         {
             try
             {
-                _logger.LogInformation("محاولة إنشاء مسؤول طوارئ من IP: {RemoteIpAddress}", 
+                _logger.LogInformation("محاولة إنشاء مسؤول طوارئ من IP: {RemoteIpAddress}",
                     HttpContext.Connection.RemoteIpAddress);
 
-               // القراءة من Environment Variables أولاً، ثم من Configuration
-               var emergencyKey = Environment.GetEnvironmentVariable("EMERGENCY_ADMIN_KEY")
-                                 ?? _configuration["EmergencySettings:AdminKey"];
+                // القراءة من Environment Variables أولاً، ثم من Configuration
+                var emergencyKey = Environment.GetEnvironmentVariable("EMERGENCY_ADMIN_KEY")
+                                  ?? _configuration["EmergencySettings:EMERGENCY_ADMIN_KEY"];
 
                 if (string.IsNullOrEmpty(emergencyKey))
                 {
@@ -47,23 +45,28 @@ namespace AutoPartsStore.Web.Controllers
 
                 if (request.EmergencyKey != emergencyKey)
                 {
-                    _logger.LogWarning("مفتاح طوارئ غير صحيح من IP: {RemoteIpAddress}", 
+                    _logger.LogWarning("مفتاح طوارئ غير صحيح من IP: {RemoteIpAddress}",
                         HttpContext.Connection.RemoteIpAddress);
                     return Unauthorized("مفتاح طوارئ غير صحيح");
                 }
 
                 // التحقق من صحة البيانات
-                if (string.IsNullOrEmpty(request.Username) || 
-                    string.IsNullOrEmpty(request.Password) ||
+                if (string.IsNullOrEmpty(request.FullName) ||
+                    string.IsNullOrEmpty(request.PhoneNumber) ||
                     string.IsNullOrEmpty(request.Email))
                 {
-                    return BadRequest("يجب提供 اسم المستخدم, كلمة المرور, والبريد الإلكتروني");
+                    return BadRequest("اسم المستخدم او كلمة المرور او الايميل ليس صحيحا");
                 }
 
-                if (request.Password.Length < 8)
+                if (!request.Email.Contains("@"))
                 {
-                    return BadRequest("كلمة المرور يجب أن تكون至少 8 أحرف");
+                    return BadRequest("البريد الإلكتروني غير صحيح");
                 }
+                if (!request.Email.Contains("@gmail.com"))
+                {
+                    return BadRequest("يجب ان يكون بريد الكتروني من قوقل");
+                }
+
 
                 // تحقق إذا يوجد أي مسؤولين بالفعل
                 var existingAdmins = await _context.UserRoleAssignments
@@ -79,20 +82,18 @@ namespace AutoPartsStore.Web.Controllers
 
                 // التحقق من عدم وجود مستخدم بنفس البيانات
                 var existingUser = await _context.Users
-                    .FirstOrDefaultAsync(u => u.Username == request.Username || u.Email == request.Email);
+                    .FirstOrDefaultAsync(u => u.Email == request.Email);
 
                 if (existingUser != null)
                 {
-                    _logger.LogWarning("محاولة إنشاء مسؤول ببيانات موجودة مسبقاً: {Username}", request.Username);
+                    _logger.LogWarning("محاولة إنشاء مسؤول ببيانات موجودة مسبقاً: {Email}", request.Email);
                     return BadRequest("اسم المستخدم أو البريد الإلكتروني مسجل مسبقاً");
                 }
 
+
                 // إنشاء المسؤول الجديد
-                var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
                 var adminUser = new User(
-                    request.Username,
-                    hashedPassword,
                     request.Email,
                     request.FullName ?? "مسؤول الطوارئ",
                     request.PhoneNumber ?? "0000000000"
@@ -120,12 +121,11 @@ namespace AutoPartsStore.Web.Controllers
                 _context.UserRoleAssignments.Add(adminAssignment);
                 await _context.SaveChangesAsync();
 
-                _logger.LogCritical("تم إنشاء مسؤول طوارئ بنجاح: {Username} ({Email})", 
-                    request.Username, request.Email);
+                _logger.LogCritical("تم إنشاء مسؤول طوارئ بنجاح: {Username} ({Email})",
+                    request.FullName, request.Email);
 
-                return Success(new 
+                return Success(new
                 {
-                    Username = adminUser.Username,
                     Email = adminUser.Email,
                     UserId = adminUser.Id,
                     CreatedAt = DateTime.UtcNow
@@ -170,11 +170,9 @@ namespace AutoPartsStore.Web.Controllers
 
     public class EmergencyAdminRequest
     {
-        public string EmergencyKey { get; set; }
-        public string Username { get; set; }
-        public string Password { get; set; }
-        public string Email { get; set; }
-        public string FullName { get; set; }
-        public string PhoneNumber { get; set; }
+        public string EmergencyKey { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        public string FullName { get; set; } = null!;
+        public string PhoneNumber { get; set; } = null!;
     }
 }

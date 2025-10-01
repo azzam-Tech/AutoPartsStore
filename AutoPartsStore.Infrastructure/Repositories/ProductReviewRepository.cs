@@ -10,12 +10,37 @@ namespace AutoPartsStore.Infrastructure.Repositories
     {
         public ProductReviewRepository(AppDbContext context) : base(context) { }
 
+        public async Task<List<ProductReviewDto>> GetReviewsAsync(bool? approvedOnly)
+        {
+            var query = _context.ProductReviews
+                .AsQueryable();
+
+            if (approvedOnly.HasValue)
+                query = query.Where(r => r.IsApproved == approvedOnly.Value);
+
+            return await query
+                .OrderByDescending(r => r.ReviewDate)
+                .Select(r => new ProductReviewDto
+                {
+                    Id = r.Id,
+                    PartId = r.PartId,
+                    PartName = r.CarPart.PartName,
+                    PartNumber = r.CarPart.PartNumber,
+                    UserId = r.UserId,
+                    UserName = r.UserId.HasValue ? r.User.FullName : "Anonymous",
+                    Rating = r.Rating,
+                    ReviewText = r.ReviewText,
+                    ReviewDate = r.ReviewDate,
+                    IsApproved = r.IsApproved,
+                    Status = r.IsApproved ? "Approved" : "Pending",
+                })
+                .ToListAsync();
+        }
+
         public async Task<List<ProductReviewDto>> GetReviewsByPartIdAsync(int partId, bool? approvedOnly = true)
         {
             var query = _context.ProductReviews
                 .Where(r => r.PartId == partId)
-                .Include(r => r.CarPart)
-                .Include(r => r.User)
                 .AsQueryable();
 
             if (approvedOnly.HasValue)
@@ -44,7 +69,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.ProductReviews
                 .Where(r => r.UserId == userId)
-                .Include(r => r.CarPart)
                 .OrderByDescending(r => r.ReviewDate)
                 .Select(r => new ProductReviewDto
                 {
@@ -67,8 +91,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.ProductReviews
                 .Where(r => !r.IsApproved)
-                .Include(r => r.CarPart)
-                .Include(r => r.User)
                 .OrderBy(r => r.ReviewDate)
                 .Select(r => new ProductReviewDto
                 {
@@ -91,8 +113,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.ProductReviews
                 .Where(r => r.Id == reviewId)
-                .Include(r => r.CarPart)
-                .Include(r => r.User)
                 .Select(r => new ProductReviewDto
                 {
                     Id = r.Id,
@@ -107,21 +127,24 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     IsApproved = r.IsApproved,
                     Status = r.IsApproved ? "Approved" : "Pending",
                 })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync() ?? throw new KeyNotFoundException("Review not found");
         }
 
         public async Task<ReviewSummaryDto> GetReviewSummaryAsync(int partId)
         {
+            var part = await _context.CarParts
+                .FirstOrDefaultAsync(p => p.Id == partId);
+
+            if (part == null)
+                throw new KeyNotFoundException("Product not found");
+
             var reviews = await _context.ProductReviews
                 .Where(r => r.PartId == partId && r.IsApproved)
                 .ToListAsync();
 
-            var part = await _context.CarParts
-                .FirstOrDefaultAsync(p => p.Id == partId);
 
             var recentReviews = await _context.ProductReviews
                 .Where(r => r.PartId == partId && r.IsApproved)
-                .Include(r => r.User)
                 .OrderByDescending(r => r.ReviewDate)
                 .Take(5)
                 .Select(r => new ProductReviewDto
@@ -138,7 +161,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
             return new ReviewSummaryDto
             {
                 PartId = partId,
-                PartName = part?.PartName,
+                PartName = part!.PartName,
                 AverageRating = reviews.Any() ? reviews.Average(r => r.Rating) : 0,
                 TotalReviews = reviews.Count,
                 FiveStar = reviews.Count(r => r.Rating == 5),

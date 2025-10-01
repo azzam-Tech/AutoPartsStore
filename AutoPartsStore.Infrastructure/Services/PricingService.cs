@@ -1,10 +1,7 @@
 ﻿using AutoPartsStore.Core.Entities;
 using AutoPartsStore.Core.Interfaces;
-using AutoPartsStore.Core.Models.Promotions;
 using AutoPartsStore.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualBasic;
 
 namespace AutoPartsStore.Infrastructure.Services
 {
@@ -29,7 +26,7 @@ namespace AutoPartsStore.Infrastructure.Services
             try
             {
                 decimal finalPrice = 0;
-                
+
                 if (carPart.DiscountPercent > 0)
                 {
                     // الأولوية للخصم الخاص بالمنتج
@@ -53,7 +50,7 @@ namespace AutoPartsStore.Infrastructure.Services
                 }
                 else
                 {
-                    if(promotion.IsActive || promotion.IsActiveNow())
+                    if (promotion.IsActive || promotion.IsActiveNow())
                     {
                         finalPrice = CalculatePriceWithPromotion(carPart.UnitPrice, promotion);
                         carPart.UpdateFinalPrice(finalPrice);
@@ -76,7 +73,7 @@ namespace AutoPartsStore.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error calculating final price for part {CarPartId}",carPart.Id);
+                _logger.LogError(ex, "Error calculating final price for part {CarPartId}", carPart.Id);
                 throw;
             }
         }
@@ -157,5 +154,144 @@ namespace AutoPartsStore.Infrastructure.Services
                 return Math.Max(0, unitPrice - promotion.DiscountValue);
             }
         }
+
+
+        #region new methods
+
+        //public ProductPriceDto CalculateProductPrice(decimal unitPrice, DiscountType discountType,
+        //                                          decimal discountValue, int quantity = 1)
+        //{
+        //    var finalUnitPrice = CalculateFinalPrice(unitPrice, discountType, discountValue);
+        //    var discountAmount = CalculateDiscountAmount(unitPrice, discountType, discountValue, quantity);
+
+        //    return new ProductPriceDto
+        //    {
+        //        UnitPrice = unitPrice,
+        //        DiscountType = discountType,
+        //        DiscountValue = discountValue,
+        //        FinalUnitPrice = finalUnitPrice,
+        //        Quantity = quantity,
+        //        TotalPrice = unitPrice * quantity,
+        //        DiscountAmount = discountAmount,
+        //        FinalTotal = finalUnitPrice * quantity
+        //    };
+        //}
+
+        ////public ProductPriceDto CalculateProductPrice(CarPart carPart, int quantity = 1)
+        ////{
+        ////    // نفترض أن CarPart له خصم نسبة مئوية فقط (للتتوافق مع الكود الحالي)
+        ////    return CalculateProductPrice(
+        ////        carPart.UnitPrice,
+        ////        DiscountType.Percent,
+        ////        carPart.DiscountPercent,
+        ////        quantity
+        ////    );
+        ////}
+
+        ////public ProductPriceDto CalculateProductPrice(Promotion promotion, CarPart carPart, int quantity = 1)
+        ////{
+        ////    // استخدام خصم الترويج إذا كان نشطاً
+        ////    if (promotion != null && promotion.IsActiveNow())
+        ////    {
+        ////        return CalculateProductPrice(
+        ////            carPart.UnitPrice,
+        ////            promotion.DiscountType,
+        ////            promotion.DiscountValue,
+        ////            quantity
+        ////        );
+        ////    }
+
+        ////    // استخدام خصم المنتج العادي
+        ////    return CalculateProductPrice(carPart, quantity);
+        ////}
+
+        ////public CartPriceSummaryDto CalculateCartPriceSummary(IEnumerable<CartItemPriceRequest> items)
+        ////{
+        ////    var itemList = items.ToList();
+
+        ////    var totalPrice = itemList.Sum(item => item.UnitPrice * item.Quantity);
+        ////    var totalDiscount = itemList.Sum(item =>
+        ////        CalculateDiscountAmount(item.UnitPrice, item.DiscountType, item.DiscountValue, item.Quantity));
+        ////    var finalTotal = totalPrice - totalDiscount;
+
+        ////    return new CartPriceSummaryDto
+        ////    {
+        ////        TotalPrice = totalPrice,
+        ////        TotalDiscount = totalDiscount,
+        ////        FinalTotal = finalTotal,
+        ////        TotalItems = itemList.Sum(item => item.Quantity)
+        ////    };
+        ////}
+
+        //public decimal CalculateFinalPrice(decimal unitPrice, DiscountType discountType, decimal discountValue)
+        //{
+        //    return discountType switch
+        //    {
+        //        DiscountType.Percent => unitPrice * (1 - discountValue / 100),
+        //        DiscountType.Fixed => Math.Max(unitPrice - discountValue, 0), // لا يقل عن صفر
+        //        _ => unitPrice
+        //    };
+        //}
+
+        //public decimal CalculateDiscountAmount(decimal unitPrice, DiscountType discountType,
+        //                                     decimal discountValue, int quantity = 1)
+        //{
+        //    var discountPerUnit = discountType switch
+        //    {
+        //        DiscountType.Percent => unitPrice * discountValue / 100,
+        //        DiscountType.Fixed => discountValue,
+        //        _ => 0
+        //    };
+
+        //    return discountPerUnit * quantity;
+        //}
+
+        //// دوال مساعدة للتوافق مع الكود الحالي
+        //public decimal CalculateFinalPrice(decimal unitPrice, decimal discountPercent)
+        //{
+        //    return CalculateFinalPrice(unitPrice, DiscountType.Percent, discountPercent);
+        //}
+
+        //public decimal CalculateDiscountAmount(decimal unitPrice, decimal discountPercent, int quantity = 1)
+        //{
+        //    return CalculateDiscountAmount(unitPrice, DiscountType.Percent, discountPercent, quantity);
+        //}
+
+        #endregion
+
+        public decimal CalculateFinalPrice(decimal unitPrice, DiscountType discountType, decimal discountValue)
+        {
+            return discountType switch
+            {
+                DiscountType.Percent => unitPrice * (1 - discountValue / 100),
+                DiscountType.Fixed => Math.Max(unitPrice - discountValue, 0), // لا يقل عن صفر
+                _ => unitPrice
+            };
+        }
+
+        public decimal CalculateTotalPrice(decimal unitPrice, int quantity = 1)
+        {
+            return unitPrice * quantity;
+        }
+
+        public decimal CalculateTotalDiscount(decimal unitPrice, DiscountType discountType,
+                                       decimal discountValue, int quantity = 1)
+        {
+            var discountPerUnit = discountType switch
+            {
+                DiscountType.Percent => unitPrice * discountValue / 100,
+                DiscountType.Fixed => discountValue,
+                _ => 0
+            };
+            return discountPerUnit * quantity;
+        }
+
+        public decimal CalculateFinalTotal(decimal unitPrice, DiscountType discountType,
+                                       decimal discountValue, int quantity = 1)
+        {
+            var finalUnitPrice = CalculateFinalPrice(unitPrice, discountType, discountValue);
+            return finalUnitPrice * quantity;
+        }
+
     }
 }

@@ -3,7 +3,6 @@ using AutoPartsStore.Core.Interfaces;
 using AutoPartsStore.Core.Models;
 using AutoPartsStore.Core.Models.Promotions;
 using AutoPartsStore.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace AutoPartsStore.Infrastructure.Services
@@ -76,7 +75,7 @@ namespace AutoPartsStore.Infrastructure.Services
             {
                 promotion.UpdateBasicInfo(
                     request.PromotionName ?? promotion.PromotionName,
-                    request.Description ?? promotion.Description,
+                    request.Description ?? promotion.Description ?? string.Empty,
                     request.MinOrderAmount ?? promotion.MinOrderAmount
                 );
             }
@@ -176,7 +175,7 @@ namespace AutoPartsStore.Infrastructure.Services
                     }
 
                     carPart.AssignPromotion(promotionId);
-                    await _pricingService.CalculateAndUpdateFinalPriceAsync(carPart , promotion);
+                    await _pricingService.CalculateAndUpdateFinalPriceAsync(carPart, promotion);
                     result.SuccessCount++;
                 }
                 catch (Exception ex)
@@ -276,7 +275,7 @@ namespace AutoPartsStore.Infrastructure.Services
                     }
 
                     carPart.AssignPromotion(newPromotionId);
-                    await _pricingService.CalculateAndUpdateFinalPriceAsync(carPart , promotion2);
+                    await _pricingService.CalculateAndUpdateFinalPriceAsync(carPart, promotion2);
                     result.SuccessCount++;
                 }
                 catch (Exception ex)

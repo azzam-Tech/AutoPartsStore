@@ -11,5 +11,5 @@ public interface IProductReviewService
     Task<bool> DeleteReviewAsync(int reviewId, int userId);
     Task<bool> ApproveReviewAsync(int reviewId, bool isApproved);
     Task<ReviewSummaryDto> GetReviewSummaryAsync(int partId);
-
+    Task<List<ProductReviewDto>> GetReviewsAsync(bool? approvedOnly);
 }
