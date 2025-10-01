@@ -10,6 +10,33 @@ namespace AutoPartsStore.Infrastructure.Repositories
     {
         public ProductReviewRepository(AppDbContext context) : base(context) { }
 
+        public async Task<List<ProductReviewDto>> GetReviewsAsync(bool? approvedOnly)
+        {
+            var query = _context.ProductReviews
+                .AsQueryable();
+
+            if (approvedOnly.HasValue)
+                query = query.Where(r => r.IsApproved == approvedOnly.Value);
+
+            return await query
+                .OrderByDescending(r => r.ReviewDate)
+                .Select(r => new ProductReviewDto
+                {
+                    Id = r.Id,
+                    PartId = r.PartId,
+                    PartName = r.CarPart.PartName,
+                    PartNumber = r.CarPart.PartNumber,
+                    UserId = r.UserId,
+                    UserName = r.UserId.HasValue ? r.User.FullName : "Anonymous",
+                    Rating = r.Rating,
+                    ReviewText = r.ReviewText,
+                    ReviewDate = r.ReviewDate,
+                    IsApproved = r.IsApproved,
+                    Status = r.IsApproved ? "Approved" : "Pending",
+                })
+                .ToListAsync();
+        }
+
         public async Task<List<ProductReviewDto>> GetReviewsByPartIdAsync(int partId, bool? approvedOnly = true)
         {
             var query = _context.ProductReviews

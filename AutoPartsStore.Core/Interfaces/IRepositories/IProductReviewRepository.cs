@@ -13,5 +13,6 @@ namespace AutoPartsStore.Core.Interfaces
         Task<double> GetAverageRatingAsync(int partId);
         Task<int> GetReviewCountAsync(int partId, bool? approvedOnly = true);
         Task<bool> HasUserReviewedPartAsync(int userId, int partId);
+        Task<List<ProductReviewDto>> GetReviewsAsync(bool? approvedOnly);
     }
 }
