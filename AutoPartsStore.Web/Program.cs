@@ -131,6 +131,8 @@ builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
 builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
 builder.Services.AddScoped<IFavoriteService, FavoriteService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ICustomerFeedbackRepository, CustomerFeedbackRepository>();
+builder.Services.AddScoped<ICustomerFeedbackService, CustomerFeedbackService>();
 builder.Services.AddRateLimiting(builder.Configuration);
 builder.Services.AddScoped<JwtTokenGenerator>();
 
