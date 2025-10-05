@@ -3,8 +3,13 @@
     /// <summary>
     /// خطأ متعلق بعملية غير مصرح بها (مثلاً: لم يسجل الدخول)
     /// </summary>
-    public class UnauthorizedException : Exception
+    public class UnauthorizedException : AppException
     {
-        public UnauthorizedException(string message) : base(message) { }
+        public UnauthorizedException(
+            string message = "غير مصرح. يرجى تسجيل الدخول.",
+            string errorCode = "UNAUTHORIZED")
+            : base(message, errorCode)
+        {
+        }
     }
 }

@@ -22,6 +22,16 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 if (filter.FeedbackType.HasValue)
                     query = query.Where(cf => cf.FeedbackType == filter.FeedbackType.Value);
 
+                if (filter.Feedbackstatus.HasValue)
+                {
+                    if (filter.Feedbackstatus.Value == Feedbackstatus.IsApproved)
+                        query = query.Where(cf => cf.IsFeatured == true);
+                    else if (filter.Feedbackstatus.Value == Feedbackstatus.IsNotApproved)
+                        query = query.Where(cf => !cf.IsFeatured == false);
+                    else if (filter.Feedbackstatus.Value == Feedbackstatus.IsPending)
+                        query = query.Where(cf => cf.IsFeatured == null);
+                }
+
                 if (filter.MinRate.HasValue)
                     query = query.Where(cf => cf.Rate >= filter.MinRate.Value);
 
@@ -176,7 +186,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
         public async Task<List<CustomerFeedbackDto>> GetFeaturedFeedbacksAsync()
         {
             return await _context.CustomerFeedbacks
-                .Where(cf => cf.IsFeatured)
+                .Where(cf => cf.IsFeatured == true)
                 .Include(cf => cf.User)
                 .OrderByDescending(cf => cf.CreatedDate)
                 .Select(cf => new CustomerFeedbackDto

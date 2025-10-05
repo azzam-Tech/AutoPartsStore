@@ -13,7 +13,7 @@ namespace AutoPartsStore.Core.Models.Review
         public int Rating { get; set; }
         public string? ReviewText { get; set; }
         public DateTime ReviewDate { get; set; }
-        public bool IsApproved { get; set; }
+        public bool? IsApproved { get; set; } // null = Pending, true = Approved, false = Rejected
         public string Status { get; set; } = null!;
     }
 }

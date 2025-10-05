@@ -37,9 +37,9 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category.CategoryName,
                     AverageRating = p.Reviews
-                        .Where(r => r.IsApproved)
+                        .Where(r => r.IsApproved == true) // Only approved reviews
                         .Average(r => (double?)r.Rating) ?? 0,
-                    ReviewCount = p.Reviews.Count(r => r.IsApproved),
+                    ReviewCount = p.Reviews.Count(r => r.IsApproved == true), // Only approved reviews
                     //TotalSold = p.CartItems
                     //    .Where(ci => ci.Cart.Order != null && ci.Cart.Order.OrderStatus == "Delivered")
                     //    .Sum(ci => ci.Quantity)
@@ -98,7 +98,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     SortBy.name => filter.SortDescending != null && filter.SortDescending.Value ? query.OrderByDescending(p => p.PartName) : query.OrderBy(p => p.PartName),
                     SortBy.newest => query.OrderByDescending(p => p.CreatedAt),
                     SortBy.rating => query.OrderByDescending(p => p.Reviews
-                               .Where(r => r.IsApproved)
+                               .Where(r => r.IsApproved == true) // Only approved reviews
                                .Average(r => (double?)r.Rating) ?? 0),
                     _ => query.OrderBy(p => p.PartName)
                 };
@@ -129,9 +129,9 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category.CategoryName,
                 AverageRating = p.Reviews
-                                    .Where(r => r.IsApproved)
+                                    .Where(r => r.IsApproved == true) // Only approved reviews
                                     .Average(r => (double?)r.Rating) ?? 0,
-                ReviewCount = p.Reviews.Count(r => r.IsApproved)
+                ReviewCount = p.Reviews.Count(r => r.IsApproved == true) // Only approved reviews
             }).ToListAsync();
 
             var count = await GetTotalCountAsync(filter);
@@ -202,7 +202,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category.CategoryName,
                     AverageRating = p.Reviews
-                        .Where(r => r.IsApproved)
+                        .Where(r => r.IsApproved == true) // Only approved reviews
                         .Average(r => (double?)r.Rating) ?? 0
                 })
                 .ToListAsync();

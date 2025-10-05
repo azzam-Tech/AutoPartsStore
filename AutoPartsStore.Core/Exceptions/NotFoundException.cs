@@ -3,8 +3,20 @@
     /// <summary>
     /// مورد غير موجود (مثلاً: مدينة، حي، مستخدم...)
     /// </summary>
-    public class NotFoundException : Exception
+    public class NotFoundException : AppException
     {
-        public NotFoundException(string message) : base(message) { }
+        public string? ResourceType { get; }
+        public object? ResourceId { get; }
+
+        public NotFoundException(
+            string message,
+            string? resourceType = null,
+            object? resourceId = null,
+            string errorCode = "RESOURCE_NOT_FOUND")
+            : base(message, errorCode)
+        {
+            ResourceType = resourceType;
+            ResourceId = resourceId;
+        }
     }
 }

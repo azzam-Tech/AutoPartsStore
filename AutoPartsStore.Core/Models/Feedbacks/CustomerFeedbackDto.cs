@@ -16,7 +16,7 @@ namespace AutoPartsStore.Core.Models.Feedbacks
         public string? RateStars { get; set; } // تمثيل مرئي للنجوم
         public DateTime CreatedDate { get; set; }
         public string TimeAgo { get; set; } = null!;
-        public bool IsFeatured { get; set; }
+        public bool? IsFeatured { get; set; }
 
     }
 
@@ -66,6 +66,7 @@ namespace AutoPartsStore.Core.Models.Feedbacks
     public class FeedbackFilterRequest
     {
         public FeedbackType? FeedbackType { get; set; }
+        public Feedbackstatus? Feedbackstatus { get; set; }
         public int? MinRate { get; set; }
         public int? MaxRate { get; set; }
         public DateTime? FromDate { get; set; }

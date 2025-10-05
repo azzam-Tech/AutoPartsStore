@@ -123,6 +123,11 @@ namespace AutoPartsStore.Web.Controllers
             }
         }
 
+        /// <summary>
+        /// Approve, reject, or set review to pending
+        /// </summary>
+        /// <param name="reviewId">Review ID</param>
+        /// <param name="request">Approval request (null = Pending, true = Approved, false = Rejected)</param>
         [HttpPatch("{reviewId}/approval")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ApproveReview(int reviewId, [FromBody] ReviewApprovalRequest request)
@@ -130,7 +135,15 @@ namespace AutoPartsStore.Web.Controllers
             try
             {
                 await _reviewService.ApproveReviewAsync(reviewId, request.IsApproved);
-                return Success($"Review {(request.IsApproved ? "approved" : "rejected")} successfully");
+                
+                var statusMessage = request.IsApproved switch
+                {
+                    true => "approved",
+                    false => "rejected",
+                    null => "set to pending"
+                };
+                
+                return Success($"Review {statusMessage} successfully");
             }
             catch (Exception ex)
             {
