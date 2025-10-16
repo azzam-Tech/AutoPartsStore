@@ -14,12 +14,10 @@ namespace AutoPartsStore.Core.Models.Orders
         public int ShippingAddressId { get; set; }
         public string ShippingAddress { get; set; } = null!;
         
-        // Order amounts
+        // Order amounts - SIMPLIFIED: No tax, no shipping
         public decimal SubTotal { get; set; }
         public decimal DiscountAmount { get; set; }
-        public decimal TaxAmount { get; set; }
-        public decimal ShippingCost { get; set; }
-        public decimal TotalAmount { get; set; }
+        public decimal TotalAmount { get; set; }  // SubTotal - DiscountAmount
         
         // Status
         public OrderStatus Status { get; set; }

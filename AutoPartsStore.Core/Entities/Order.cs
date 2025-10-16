@@ -17,7 +17,7 @@ namespace AutoPartsStore.Core.Entities
     }
 
     /// <summary>
-    /// Main Order entity
+    /// Main Order entity - Simplified without tax and shipping
     /// </summary>
     public class Order
     {
@@ -28,12 +28,10 @@ namespace AutoPartsStore.Core.Entities
         // Address information
         public int ShippingAddressId { get; private set; }
         
-        // Order amounts
+        // Order amounts - SIMPLIFIED: SubTotal - Discount = Total
         public decimal SubTotal { get; private set; }        // Sum of all items before discounts
         public decimal DiscountAmount { get; private set; }  // Total discount applied
-        public decimal TaxAmount { get; private set; }       // VAT (15% in Saudi Arabia)
-        public decimal ShippingCost { get; private set; }
-        public decimal TotalAmount { get; private set; }     // Final amount to pay
+        public decimal TotalAmount { get; private set; }     // SubTotal - DiscountAmount
         
         // Order status and tracking
         public OrderStatus Status { get; private set; }
@@ -64,23 +62,19 @@ namespace AutoPartsStore.Core.Entities
         public PaymentTransaction? PaymentTransaction { get; private set; }
         public List<OrderItem> OrderItems { get; private set; } = new();
 
-        // Constructor
+        // Constructor - Simplified
         public Order(
             int userId,
             int shippingAddressId,
             decimal subTotal,
             decimal discountAmount,
-            decimal taxAmount,
-            decimal shippingCost,
             string? customerNotes = null)
         {
             UserId = userId;
             ShippingAddressId = shippingAddressId;
             SubTotal = subTotal;
             DiscountAmount = discountAmount;
-            TaxAmount = taxAmount;
-            ShippingCost = shippingCost;
-            TotalAmount = (subTotal - discountAmount) + taxAmount + shippingCost;
+            TotalAmount = subTotal - discountAmount;
             
             OrderNumber = GenerateOrderNumber();
             Status = OrderStatus.Pending;
@@ -98,12 +92,10 @@ namespace AutoPartsStore.Core.Entities
                 throw new ArgumentException("SubTotal cannot be negative");
             if (DiscountAmount < 0)
                 throw new ArgumentException("DiscountAmount cannot be negative");
-            if (TaxAmount < 0)
-                throw new ArgumentException("TaxAmount cannot be negative");
-            if (ShippingCost < 0)
-                throw new ArgumentException("ShippingCost cannot be negative");
             if (DiscountAmount > SubTotal)
                 throw new ArgumentException("DiscountAmount cannot exceed SubTotal");
+            if (TotalAmount < 0)
+                throw new ArgumentException("TotalAmount cannot be negative");
         }
 
         // Methods
@@ -194,12 +186,14 @@ namespace AutoPartsStore.Core.Entities
                    Status == OrderStatus.Shipped;
         }
 
-        public void UpdateTotals(decimal subTotal, decimal discountAmount, decimal taxAmount)
+        /// <summary>
+        /// Recalculate order totals from order items
+        /// </summary>
+        public void UpdateTotals(decimal subTotal, decimal discountAmount)
         {
             SubTotal = subTotal;
             DiscountAmount = discountAmount;
-            TaxAmount = taxAmount;
-            TotalAmount = (subTotal - discountAmount) + taxAmount + ShippingCost;
+            TotalAmount = subTotal - discountAmount;
             UpdatedAt = DateTime.UtcNow;
         }
     }

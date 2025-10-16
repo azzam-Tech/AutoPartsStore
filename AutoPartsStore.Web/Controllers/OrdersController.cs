@@ -23,7 +23,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         /// <summary>
-        /// Create order from shopping cart
+        /// Create order from shopping cart - THE ONLY WAY TO CREATE ORDERS
         /// </summary>
         [HttpPost("from-cart")]
         [Authorize]
@@ -32,18 +32,6 @@ namespace AutoPartsStore.Web.Controllers
             var userId = GetAuthenticatedUserId();
             var order = await _orderService.CreateOrderFromCartAsync(userId, request);
             return Success(order, " „ ≈‰‘«¡ «·ÿ·» »‰Ã«Õ „‰ ”·… «· ”Êﬁ.");
-        }
-
-        /// <summary>
-        /// Create order directly (without cart)
-        /// </summary>
-        [HttpPost]
-        [Authorize]
-        public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
-        {
-            var userId = GetAuthenticatedUserId();
-            var order = await _orderService.CreateOrderAsync(userId, request);
-            return Success(order, " „ ≈‰‘«¡ «·ÿ·» »‰Ã«Õ.");
         }
 
         /// <summary>
@@ -182,17 +170,6 @@ namespace AutoPartsStore.Web.Controllers
         {
             await _orderService.DeleteOrderAsync(id);
             return Success(" „ Õ–› «·ÿ·» »‰Ã«Õ.");
-        }
-
-        /// <summary>
-        /// Calculate order total
-        /// </summary>
-        [HttpPost("calculate-total")]
-        [Authorize]
-        public async Task<IActionResult> CalculateTotal([FromBody] List<CreateOrderItemRequest> items)
-        {
-            var total = await _orderService.CalculateOrderTotalAsync(items);
-            return Success(new { total }, " „ Õ”«» ≈Ã„«·Ì «·ÿ·».");
         }
 
         /// <summary>

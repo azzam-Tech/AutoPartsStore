@@ -6,9 +6,10 @@ namespace AutoPartsStore.Core.Interfaces.IServices
 {
     public interface IOrderService
     {
-        // Order CRUD
+        // Order creation - ONLY from cart
         Task<OrderDto> CreateOrderFromCartAsync(int userId, CreateOrderFromCartRequest request);
-        Task<OrderDto> CreateOrderAsync(int userId, CreateOrderRequest request);
+        
+        // Order retrieval
         Task<OrderDto?> GetOrderByIdAsync(int id);
         Task<OrderDto?> GetOrderByNumberAsync(string orderNumber);
         Task<PagedResult<OrderDto>> GetOrdersAsync(OrderFilterRequest filter);
@@ -20,9 +21,6 @@ namespace AutoPartsStore.Core.Interfaces.IServices
         Task<OrderDto> CancelOrderAsync(int orderId, int userId, CancelOrderRequest request);
         Task<OrderDto> UpdateTrackingNumberAsync(int orderId, UpdateTrackingRequest request);
         Task<bool> DeleteOrderAsync(int orderId);
-        
-        // Order calculations
-        Task<decimal> CalculateOrderTotalAsync(List<CreateOrderItemRequest> items);
         
         // Statistics
         Task<decimal> GetTotalRevenueAsync(DateTime? fromDate = null, DateTime? toDate = null);

@@ -18,21 +18,19 @@ namespace AutoPartsStore.Infrastructure.Services
         private readonly IAddressRepository _addressRepository;
         private readonly AppDbContext _context;
         private readonly ILogger<OrderService> _logger;
-        private const decimal VAT_RATE = 0.15m; // 15% VAT
-        private const decimal DEFAULT_SHIPPING_COST = 25.00m; // Default shipping in SAR
 
         public OrderService(
             IOrderRepository orderRepository,
             IShoppingCartRepository cartRepository,
             IAddressRepository addressRepository,
             AppDbContext context,
-            ILogger<OrderService> logger)
+            ILogger<OrderService> _logger)
         {
             _orderRepository = orderRepository;
             _cartRepository = cartRepository;
             _addressRepository = addressRepository;
             _context = context;
-            _logger = logger;
+            this._logger = _logger;
         }
 
         public async Task<OrderDto> CreateOrderFromCartAsync(int userId, CreateOrderFromCartRequest request)
@@ -65,17 +63,12 @@ namespace AutoPartsStore.Infrastructure.Services
                 Quantity = i.Quantity
             }).ToList());
 
-            // Calculate order totals
-            var (subTotal, discountAmount, taxAmount, shippingCost) = CalculateOrderTotals(cart.Items);
-
-            // Create order
+            // Create order with placeholder values (will be recalculated from OrderItems)
             var order = new Order(
                 userId,
                 request.ShippingAddressId,
-                subTotal,
-                discountAmount,
-                taxAmount,
-                shippingCost,
+                0, // SubTotal - will be recalculated
+                0, // DiscountAmount - will be recalculated
                 request.CustomerNotes
             );
 
@@ -83,6 +76,7 @@ namespace AutoPartsStore.Infrastructure.Services
             await _context.SaveChangesAsync();
 
             // Create order items from cart
+            // OrderItem constructor automatically calculates prices using the BEST discount logic
             foreach (var cartItem in cart.Items)
             {
                 var part = await _context.CarParts
@@ -112,142 +106,25 @@ namespace AutoPartsStore.Infrastructure.Services
             await _context.SaveChangesAsync();
 
             // IMPORTANT: Recalculate order totals from actual order items
-            // This ensures order header matches the sum of order items
+            // OrderItem.CalculateAmounts() uses Math.Min to get the BEST price (product discount vs promotion)
             var orderItems = await _context.OrderItems
                 .Where(oi => oi.OrderId == order.Id)
                 .ToListAsync();
 
             decimal actualSubTotal = orderItems.Sum(oi => oi.SubTotal);
             decimal actualDiscount = orderItems.Sum(oi => oi.DiscountAmount);
-            decimal actualTax = (actualSubTotal - actualDiscount) * VAT_RATE;
 
-            order.UpdateTotals(actualSubTotal, actualDiscount, actualTax);
+            order.UpdateTotals(actualSubTotal, actualDiscount);
 
             await _context.SaveChangesAsync();
 
             // Clear the cart
             await ClearUserCartAsync(userId);
 
-            _logger.LogInformation("Order {OrderNumber} created successfully for user {UserId}",
-                order.OrderNumber, userId);
+            _logger.LogInformation("Order {OrderNumber} created successfully for user {UserId}. Total: {Total} SAR",
+                order.OrderNumber, userId, order.TotalAmount);
 
             // Return order details
-            return (await _orderRepository.GetByIdWithDetailsAsync(order.Id))!;
-        }
-
-        public async Task<OrderDto> CreateOrderAsync(int userId, CreateOrderRequest request)
-        {
-            if (request.Items == null || !request.Items.Any())
-            {
-                throw new ValidationException("íÌÈ ÊÍÏíÏ ÚäÇÕÑ ÇáØáÈ.");
-            }
-
-            _logger.LogInformation("Creating direct order for user {UserId}", userId);
-
-            // Validate address
-            var address = await _addressRepository.GetByIdWithDetailsAsync(request.ShippingAddressId);
-            if (address == null)
-            {
-                throw new NotFoundException("ÇáÚäæÇä ÛíÑ ãæÌæÏ.", "Address", request.ShippingAddressId);
-            }
-
-            if (address.UserId != userId)
-            {
-                throw new ForbiddenException("áÇ íãßäß ÇÓÊÎÏÇã ÚäæÇä áÇ íÎÕß.");
-            }
-
-            // Validate stock
-            await ValidateStockAvailabilityAsync(request.Items);
-
-            // Get parts and calculate totals
-            var parts = await _context.CarParts
-                .Include(p => p.Promotion)
-                .Where(p => request.Items.Select(i => i.PartId).Contains(p.Id))
-                .ToListAsync();
-
-            decimal subTotal = 0;
-            decimal totalDiscount = 0;
-
-            var orderItemsData = new List<(CarPart part, int quantity)>();
-
-            foreach (var item in request.Items)
-            {
-                var part = parts.FirstOrDefault(p => p.Id == item.PartId);
-                if (part == null)
-                {
-                    throw new NotFoundException($"ÇáãäÊÌ ÛíÑ ãæÌæÏ.", "CarPart", item.PartId);
-                }
-
-                if (!part.IsActive || part.IsDeleted)
-                {
-                    throw new BusinessException($"ÇáãäÊÌ '{part.PartName}' ÛíÑ ãÊÇÍ.");
-                }
-
-                orderItemsData.Add((part, item.Quantity));
-
-                var itemSubTotal = part.UnitPrice * item.Quantity;
-                var itemFinalPrice = part.GetFinalPrice() * item.Quantity;
-                
-                subTotal += itemSubTotal;
-                totalDiscount += (itemSubTotal - itemFinalPrice);
-            }
-
-            var taxAmount = (subTotal - totalDiscount) * VAT_RATE;
-            var shippingCost = DEFAULT_SHIPPING_COST;
-
-            // Create order
-            var order = new Order(
-                userId,
-                request.ShippingAddressId,
-                subTotal,
-                totalDiscount,
-                taxAmount,
-                shippingCost,
-                request.CustomerNotes
-            );
-
-            await _context.Orders.AddAsync(order);
-            await _context.SaveChangesAsync();
-
-            // Create order items
-            foreach (var (part, quantity) in orderItemsData)
-            {
-                var orderItem = new OrderItem(
-                    order.Id,
-                    part.Id,
-                    part.PartNumber,
-                    part.PartName,
-                    part.UnitPrice,
-                    part.DiscountPercent,
-                    quantity,
-                    part.ImageUrl,
-                    part.PromotionId,
-                    part.Promotion?.PromotionName,
-                    part.Promotion?.DiscountType,
-                    part.Promotion?.DiscountValue
-                );
-
-                await _context.OrderItems.AddAsync(orderItem);
-            }
-
-            await _context.SaveChangesAsync();
-
-            // IMPORTANT: Recalculate order totals from actual order items
-            // This ensures order header matches the sum of order items
-            var orderItemsList = await _context.OrderItems
-                .Where(oi => oi.OrderId == order.Id)
-                .ToListAsync();
-
-            decimal actualSubTotal = orderItemsList.Sum(oi => oi.SubTotal);
-            decimal actualDiscount = orderItemsList.Sum(oi => oi.DiscountAmount);
-            decimal actualTax = (actualSubTotal - actualDiscount) * VAT_RATE;
-
-            order.UpdateTotals(actualSubTotal, actualDiscount, actualTax);
-
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Order {OrderNumber} created successfully", order.OrderNumber);
-
             return (await _orderRepository.GetByIdWithDetailsAsync(order.Id))!;
         }
 
@@ -381,38 +258,6 @@ namespace AutoPartsStore.Infrastructure.Services
             return true;
         }
 
-        public async Task<decimal> CalculateOrderTotalAsync(List<CreateOrderItemRequest> items)
-        {
-            if (!items.Any())
-                return 0;
-
-            var partIds = items.Select(i => i.PartId).ToList();
-            var parts = await _context.CarParts
-                .Where(p => partIds.Contains(p.Id))
-                .ToListAsync();
-
-            decimal subTotal = 0;
-            decimal totalDiscount = 0;
-
-            foreach (var item in items)
-            {
-                var part = parts.FirstOrDefault(p => p.Id == item.PartId);
-                if (part != null)
-                {
-                    var itemSubTotal = part.UnitPrice * item.Quantity;
-                    var itemFinalPrice = part.GetFinalPrice() * item.Quantity;
-                    
-                    subTotal += itemSubTotal;
-                    totalDiscount += (itemSubTotal - itemFinalPrice);
-                }
-            }
-
-            var taxAmount = (subTotal - totalDiscount) * VAT_RATE;
-            var totalAmount = (subTotal - totalDiscount) + taxAmount + DEFAULT_SHIPPING_COST;
-
-            return totalAmount;
-        }
-
         public async Task<decimal> GetTotalRevenueAsync(DateTime? fromDate = null, DateTime? toDate = null)
         {
             return await _orderRepository.GetTotalRevenueAsync(fromDate, toDate);
@@ -425,17 +270,6 @@ namespace AutoPartsStore.Infrastructure.Services
         }
 
         // Private helper methods
-        private (decimal subTotal, decimal discount, decimal tax, decimal shipping) CalculateOrderTotals(
-            List<Core.Models.Cart.CartItemDto> items)
-        {
-            decimal subTotal = items.Sum(i => i.TotalPrice);
-            decimal totalDiscount = items.Sum(i => i.TotalDiscount);
-            decimal taxAmount = (subTotal - totalDiscount) * VAT_RATE;
-            decimal shippingCost = DEFAULT_SHIPPING_COST;
-
-            return (subTotal, totalDiscount, taxAmount, shippingCost);
-        }
-
         private async Task ValidateStockAvailabilityAsync(List<CreateOrderItemRequest> items)
         {
             var partIds = items.Select(i => i.PartId).ToList();

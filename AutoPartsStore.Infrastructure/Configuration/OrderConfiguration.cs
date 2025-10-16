@@ -19,23 +19,15 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .IsUnique();
 
             builder.Property(o => o.SubTotal)
-                .HasColumnType("decimal(18,2)")
+                .HasColumnType("DECIMAL(10,2)")
                 .IsRequired();
 
             builder.Property(o => o.DiscountAmount)
-                .HasColumnType("decimal(18,2)")
-                .IsRequired();
-
-            builder.Property(o => o.TaxAmount)
-                .HasColumnType("decimal(18,2)")
-                .IsRequired();
-
-            builder.Property(o => o.ShippingCost)
-                .HasColumnType("decimal(18,2)")
+                .HasColumnType("DECIMAL(10,2)")
                 .IsRequired();
 
             builder.Property(o => o.TotalAmount)
-                .HasColumnType("decimal(18,2)")
+                .HasColumnType("DECIMAL(10,2)")
                 .IsRequired();
 
             builder.Property(o => o.Status)
