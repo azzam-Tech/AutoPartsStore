@@ -14,7 +14,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.CartItems
                 .Where(ci => ci.CartId == cartId)
-                .Include(ci => ci.CarPart)
                 .Select(ci => new CartItemDto
                 {
                     Id = ci.Id,
@@ -41,7 +40,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.CartItems
                 .Where(ci => ci.Id == cartItemId)
-                .Include(ci => ci.CarPart)
                 .Select(ci => new CartItemDto
                 {
                     Id = ci.Id,

@@ -14,7 +14,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.Favorites
                 .Where(f => f.UserId == userId)
-                .Include(f => f.CarPart)
                 .OrderByDescending(f => f.AddedDate)
                 .Select(f => new FavoriteDto
                 {

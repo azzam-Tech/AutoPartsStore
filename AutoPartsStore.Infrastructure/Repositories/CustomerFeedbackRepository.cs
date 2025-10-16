@@ -74,7 +74,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.CustomerFeedbacks
                 .Where(cf => cf.Id == id)
-                .Include(cf => cf.User)
                 .Select(cf => new CustomerFeedbackDto
                 {
                     Id = cf.Id,
@@ -97,7 +96,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.CustomerFeedbacks
                 .Where(cf => cf.UserId == userId)
-                .Include(cf => cf.User)
                 .OrderByDescending(cf => cf.CreatedDate)
                 .Select(cf => new CustomerFeedbackDto
                 {
@@ -154,7 +152,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         public async Task<List<CustomerFeedbackDto>> GetRecentFeedbacksAsync(int count = 10)
         {
             return await _context.CustomerFeedbacks
-                .Include(cf => cf.User)
                 .OrderByDescending(cf => cf.CreatedDate)
                 .Take(count)
                 .Select(cf => new CustomerFeedbackDto
@@ -191,7 +188,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.CustomerFeedbacks
                 .Where(cf => cf.IsFeatured == true)
-                .Include(cf => cf.User)
                 .OrderByDescending(cf => cf.CreatedDate)
                 .Select(cf => new CustomerFeedbackDto
                 {

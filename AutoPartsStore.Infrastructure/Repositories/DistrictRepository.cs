@@ -13,7 +13,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         public new async Task<IEnumerable<DistrictDto>> GetAllAsync()
         {
             return await _context.Districts
-                .Include(d => d.City)
                 .Select(d => new DistrictDto
                 {
                     Id = d.Id,
@@ -27,11 +26,11 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+       
         public async Task<IEnumerable<DistrictDto>> GetByCityIdAsync(int cityId)
         {
             return await _context.Districts
                 .Where(d => d.CityId == cityId)
-                .Include(d => d.City)
                 .Select(d => new DistrictDto
                 {
                     Id = d.Id,
@@ -48,7 +47,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.Districts
                 .Where(d => d.Id == id)
-                .Include(d => d.City)
                 .Select(d => new DistrictDto
                 {
                     Id = d.Id,
