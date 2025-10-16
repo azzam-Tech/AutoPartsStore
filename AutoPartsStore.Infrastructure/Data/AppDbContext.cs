@@ -34,6 +34,11 @@ namespace AutoPartsStore.Infrastructure.Data
         public DbSet<SystemSetting> SystemSettings { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<CustomerFeedback> CustomerFeedbacks { get; set; }
+        
+        // Order Management
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
