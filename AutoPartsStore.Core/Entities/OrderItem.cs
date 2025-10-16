@@ -2,6 +2,7 @@ namespace AutoPartsStore.Core.Entities
 {
     /// <summary>
     /// Order item entity - represents individual products in an order
+    /// Uses unified pricing logic: Product discount has PRIORITY over promotion
     /// </summary>
     public class OrderItem
     {
@@ -14,22 +15,22 @@ namespace AutoPartsStore.Core.Entities
         public string PartName { get; private set; }
         public string? ImageUrl { get; private set; }
         
-        // Pricing information
-        public decimal UnitPrice { get; private set; }           // Original unit price
-        public decimal DiscountPercent { get; private set; }     // Product's direct discount
-        public int Quantity { get; private set; }
+        // Pricing information - Making public for external calculations
+        public decimal UnitPrice { get; set; }           // Original unit price
+        public decimal DiscountPercent { get; set; }     // Product's direct discount
+        public int Quantity { get; set; }
         
         // Promotion/Offer information (if applicable)
-        public int? PromotionId { get; private set; }
-        public string? PromotionName { get; private set; }
-        public DiscountType? PromotionDiscountType { get; private set; }
-        public decimal? PromotionDiscountValue { get; private set; }
+        public int? PromotionId { get; set; }
+        public string? PromotionName { get; set; }
+        public DiscountType? PromotionDiscountType { get; set; }
+        public decimal? PromotionDiscountValue { get; set; }
         
-        // Calculated amounts
-        public decimal SubTotal { get; private set; }            // UnitPrice * Quantity
-        public decimal DiscountAmount { get; private set; }      // Total discount applied
-        public decimal FinalPrice { get; private set; }          // Price per unit after all discounts
-        public decimal TotalAmount { get; private set; }         // Final amount for this line item
+        // Calculated amounts - PUBLIC for external access
+        public decimal SubTotal { get; set; }            // UnitPrice * Quantity (TotalPrice)
+        public decimal DiscountAmount { get; set; }      // Total discount applied (TotalDiscount)
+        public decimal FinalPrice { get; set; }          // Price per unit after discount
+        public decimal TotalAmount { get; set; }         // Final total after discount (FinalTotal)
         
         // Audit
         public DateTime CreatedAt { get; private set; }
@@ -70,45 +71,59 @@ namespace AutoPartsStore.Core.Entities
             
             CreatedAt = DateTime.UtcNow;
             
-            // Calculate amounts
+            // Calculate amounts using unified pricing logic
             CalculateAmounts();
             Validate();
         }
 
+        /// <summary>
+        /// Calculate all amounts using UNIFIED pricing logic
+        /// RULE: Product discount has PRIORITY over promotion
+        /// 
+        /// Definitions:
+        /// - UnitPrice: Original product price
+        /// - FinalPrice: Price per unit after best discount
+        /// - SubTotal: UnitPrice * Quantity (TotalPrice)
+        /// - DiscountAmount: Total discount amount (TotalDiscount)
+        /// - TotalAmount: SubTotal - DiscountAmount (FinalTotal)
+        /// </summary>
         private void CalculateAmounts()
         {
+            // SubTotal = TotalPrice (before any discount)
             SubTotal = UnitPrice * Quantity;
             
-            decimal priceAfterProductDiscount = UnitPrice;
-            
-            // Apply product's direct discount
+            // Calculate FinalPrice using PRIORITY rule: Product discount > Promotion
             if (DiscountPercent > 0)
             {
-                priceAfterProductDiscount = UnitPrice * (1 - DiscountPercent / 100);
+                // Product has discount - USE IT (has priority)
+                FinalPrice = UnitPrice * (1 - DiscountPercent / 100);
             }
-            
-            // Apply promotion discount if exists and is better
-            decimal priceAfterPromotion = priceAfterProductDiscount;
-            if (PromotionId.HasValue && PromotionDiscountType.HasValue && PromotionDiscountValue.HasValue)
+            else if (PromotionId.HasValue && PromotionDiscountType.HasValue && PromotionDiscountValue.HasValue)
             {
+                // No product discount, use promotion
                 if (PromotionDiscountType == DiscountType.Percent)
                 {
-                    priceAfterPromotion = UnitPrice * (1 - PromotionDiscountValue.Value / 100);
+                    FinalPrice = UnitPrice * (1 - PromotionDiscountValue.Value / 100);
                 }
                 else if (PromotionDiscountType == DiscountType.Fixed)
                 {
-                    priceAfterPromotion = Math.Max(0, UnitPrice - PromotionDiscountValue.Value);
+                    FinalPrice = Math.Max(0, UnitPrice - PromotionDiscountValue.Value);
                 }
-                
-                // Use the better discount (lower price)
-                FinalPrice = Math.Min(priceAfterProductDiscount, priceAfterPromotion);
+                else
+                {
+                    FinalPrice = UnitPrice;
+                }
             }
             else
             {
-                FinalPrice = priceAfterProductDiscount;
+                // No discount at all
+                FinalPrice = UnitPrice;
             }
             
+            // TotalAmount = FinalTotal (with quantity and discount)
             TotalAmount = FinalPrice * Quantity;
+            
+            // DiscountAmount = TotalDiscount
             DiscountAmount = SubTotal - TotalAmount;
         }
 
@@ -128,6 +143,14 @@ namespace AutoPartsStore.Core.Entities
                 throw new ArgumentException("Quantity must be greater than zero");
                 
             Quantity = newQuantity;
+            CalculateAmounts();
+        }
+
+        /// <summary>
+        /// Recalculate all pricing amounts (useful after external changes)
+        /// </summary>
+        public void RecalculateAmounts()
+        {
             CalculateAmounts();
         }
     }

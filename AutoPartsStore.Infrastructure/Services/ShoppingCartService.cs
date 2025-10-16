@@ -42,10 +42,20 @@ namespace AutoPartsStore.Infrastructure.Services
                                LastUpdated = cart.LastUpdated,
                                TotalItems = cart.Items.Sum(ci => ci.Quantity),
                                TotalPrice = cart.Items.Sum(ci => ci.CarPart.UnitPrice * ci.Quantity),
-                               //TotalDiscount = cart.Items.Sum(ci => ci.CarPart.DiscountPercent == 0 && ci.CarPart.Promotion != null ? _pricingService.CalculateTotalDiscount(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity) : (ci.CarPart.UnitPrice * ci.CarPart.DiscountPercent / 100) * ci.Quantity),
-                               //FinalTotal = cart.Items.Sum(ci => ci.CarPart.DiscountPercent == 0 && ci.CarPart.Promotion != null ? _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity) : _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, DiscountType.Percent, ci.CarPart.DiscountPercent, ci.Quantity)),
-                               TotalDiscount = 0, //I will fix it later
-                               FinalTotal = 0, //I will fix it later
+                               TotalDiscount = cart.Items.Sum(ci => 
+                                   // PRIORITY RULE: If product has discount, use it. Otherwise use promotion.
+                                   ci.CarPart.DiscountPercent > 0
+                                       ? (ci.CarPart.UnitPrice * ci.CarPart.DiscountPercent / 100) * ci.Quantity
+                                       : (ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow()
+                                           ? _pricingService.CalculateTotalDiscount(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity)
+                                           : 0)),
+                               FinalTotal = cart.Items.Sum(ci => 
+                                   // PRIORITY RULE: If product has discount, use it. Otherwise use promotion.
+                                   ci.CarPart.DiscountPercent > 0
+                                       ? _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, DiscountType.Percent, ci.CarPart.DiscountPercent, ci.Quantity)
+                                       : (ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow()
+                                           ? _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity)
+                                           : ci.CarPart.UnitPrice * ci.Quantity)),
                                Items = cart.Items.Select(ci => new CartItemDto
                                {
                                    Id = ci.Id,
@@ -60,11 +70,24 @@ namespace AutoPartsStore.Infrastructure.Services
                                    PromotionName = ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow() ? ci.CarPart.Promotion.PromotionName : null,
                                    DiscountType = ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow() ? ci.CarPart.Promotion.DiscountType : null,
                                    DiscountValue = ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow() ? ci.CarPart.Promotion.DiscountValue : 0,
-                                   FinalPrice = ci.CarPart.DiscountPercent == 0 && ci.CarPart.Promotion != null ? _pricingService.CalculateFinalPrice(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue) : _pricingService.CalculateFinalPrice(ci.CarPart.UnitPrice, DiscountType.Percent, ci.CarPart.DiscountPercent),
+                                   // PRIORITY RULE: If product has discount, use it. Otherwise use promotion.
+                                   FinalPrice = ci.CarPart.DiscountPercent > 0
+                                       ? _pricingService.CalculateFinalPrice(ci.CarPart.UnitPrice, DiscountType.Percent, ci.CarPart.DiscountPercent)
+                                       : (ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow()
+                                           ? _pricingService.CalculateFinalPrice(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue)
+                                           : ci.CarPart.UnitPrice),
                                    Quantity = ci.Quantity,
                                    TotalPrice = ci.CarPart.UnitPrice * ci.Quantity,
-                                   TotalDiscount = ci.CarPart.DiscountPercent == 0 && ci.CarPart.Promotion != null ? _pricingService.CalculateTotalDiscount(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity)  : (ci.CarPart.UnitPrice * ci.CarPart.DiscountPercent / 100) * ci.Quantity,
-                                   FinalTotal = ci.CarPart.DiscountPercent == 0 && ci.CarPart.Promotion != null ? _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity) : _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, DiscountType.Percent, ci.CarPart.DiscountPercent, ci.Quantity),
+                                   TotalDiscount = ci.CarPart.DiscountPercent > 0
+                                       ? (ci.CarPart.UnitPrice * ci.CarPart.DiscountPercent / 100) * ci.Quantity
+                                       : (ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow()
+                                           ? _pricingService.CalculateTotalDiscount(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity)
+                                           : 0),
+                                   FinalTotal = ci.CarPart.DiscountPercent > 0
+                                       ? _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, DiscountType.Percent, ci.CarPart.DiscountPercent, ci.Quantity)
+                                       : (ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow()
+                                           ? _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity)
+                                           : ci.CarPart.UnitPrice * ci.Quantity),
                                    CreatedAt = ci.CreatedAt,
                                    IsAvailable = ci.CarPart.IsInStock(),
                                    AvailableStock = ci.CarPart.StockQuantity

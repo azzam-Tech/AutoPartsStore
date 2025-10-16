@@ -7,15 +7,15 @@ namespace AutoPartsStore.Core.Interfaces
     {
         Task CalculateAndUpdateFinalPriceAsync(CarPart carPart, Promotion? promotion);
         
-        // Basic calculation methods
+        // Unified pricing methods (Product discount has PRIORITY over promotion)
+        decimal CalculateFinalPrice(decimal unitPrice, decimal productDiscountPercent, Promotion? promotion);
+        decimal CalculateTotalPrice(decimal unitPrice, int quantity = 1);
+        decimal CalculateTotalDiscount(decimal unitPrice, decimal productDiscountPercent, Promotion? promotion, int quantity);
+        decimal CalculateFinalTotal(decimal unitPrice, decimal productDiscountPercent, Promotion? promotion, int quantity);
+        
+        // Legacy methods for backward compatibility
         decimal CalculateFinalPrice(decimal unitPrice, DiscountType discountType, decimal discountValue);
         decimal CalculateFinalTotal(decimal unitPrice, DiscountType discountType, decimal discountValue, int quantity = 1);
         decimal CalculateTotalDiscount(decimal unitPrice, DiscountType discountType, decimal discountValue, int quantity = 1);
-        decimal CalculateTotalPrice(decimal unitPrice, int quantity = 1);
-        
-        // NEW: Best price calculation considering BOTH product discount AND promotion
-        decimal CalculateBestFinalPrice(decimal unitPrice, decimal discountPercent, Promotion? promotion);
-        decimal CalculateBestTotalDiscount(decimal unitPrice, decimal discountPercent, Promotion? promotion, int quantity);
-        decimal CalculateBestFinalTotal(decimal unitPrice, decimal discountPercent, Promotion? promotion, int quantity);
     }
 }

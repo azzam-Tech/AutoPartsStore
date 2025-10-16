@@ -18,6 +18,7 @@ namespace AutoPartsStore.Core.Entities
 
     /// <summary>
     /// Main Order entity - Simplified without tax and shipping
+    /// Uses unified pricing logic: Totals = Sum of OrderItems
     /// </summary>
     public class Order
     {
@@ -28,10 +29,11 @@ namespace AutoPartsStore.Core.Entities
         // Address information
         public int ShippingAddressId { get; private set; }
         
-        // Order amounts - SIMPLIFIED: SubTotal - Discount = Total
-        public decimal SubTotal { get; private set; }        // Sum of all items before discounts
-        public decimal DiscountAmount { get; private set; }  // Total discount applied
-        public decimal TotalAmount { get; private set; }     // SubTotal - DiscountAmount
+        // Order amounts - PUBLIC for external calculations
+        // These should always equal the sum of OrderItems amounts
+        public decimal SubTotal { get; set; }        // Sum of OrderItems.SubTotal (TotalPrice)
+        public decimal DiscountAmount { get; set; }  // Sum of OrderItems.DiscountAmount (TotalDiscount)
+        public decimal TotalAmount { get; set; }     // SubTotal - DiscountAmount (FinalTotal)
         
         // Order status and tracking
         public OrderStatus Status { get; private set; }
@@ -188,12 +190,38 @@ namespace AutoPartsStore.Core.Entities
 
         /// <summary>
         /// Recalculate order totals from order items
+        /// This should be called after OrderItems are created or modified
+        /// Formula: SubTotal - DiscountAmount = TotalAmount
         /// </summary>
         public void UpdateTotals(decimal subTotal, decimal discountAmount)
         {
             SubTotal = subTotal;
             DiscountAmount = discountAmount;
             TotalAmount = subTotal - discountAmount;
+            UpdatedAt = DateTime.UtcNow;
+            
+            Validate();
+        }
+
+        /// <summary>
+        /// Recalculate order totals from OrderItems collection
+        /// Ensures Order totals always match sum of OrderItems
+        /// </summary>
+        public void RecalculateTotalsFromItems()
+        {
+            if (OrderItems == null || !OrderItems.Any())
+            {
+                SubTotal = 0;
+                DiscountAmount = 0;
+                TotalAmount = 0;
+            }
+            else
+            {
+                SubTotal = OrderItems.Sum(oi => oi.SubTotal);
+                DiscountAmount = OrderItems.Sum(oi => oi.DiscountAmount);
+                TotalAmount = SubTotal - DiscountAmount;
+            }
+            
             UpdatedAt = DateTime.UtcNow;
         }
     }

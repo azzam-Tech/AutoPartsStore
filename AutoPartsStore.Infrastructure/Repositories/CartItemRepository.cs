@@ -24,11 +24,30 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     ImageUrl = ci.CarPart.ImageUrl,
                     UnitPrice = ci.CarPart.UnitPrice,
                     DiscountPercent = ci.CarPart.DiscountPercent,
-                    FinalPrice = ci.CarPart.GetFinalPrice(),
+                    // PRIORITY RULE: If product has discount, use it. Otherwise use promotion.
+                    FinalPrice = ci.CarPart.DiscountPercent > 0
+                        ? ci.CarPart.UnitPrice * (1 - ci.CarPart.DiscountPercent / 100)
+                        : (ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow()
+                            ? (ci.CarPart.Promotion.DiscountType == DiscountType.Percent
+                                ? ci.CarPart.UnitPrice * (1 - ci.CarPart.Promotion.DiscountValue / 100)
+                                : Math.Max(0, ci.CarPart.UnitPrice - ci.CarPart.Promotion.DiscountValue))
+                            : ci.CarPart.UnitPrice),
                     Quantity = ci.Quantity,
                     TotalPrice = ci.CarPart.UnitPrice * ci.Quantity,
-                    TotalDiscount = (ci.CarPart.UnitPrice * ci.CarPart.DiscountPercent / 100) * ci.Quantity,
-                    FinalTotal = ci.CarPart.GetFinalPrice() * ci.Quantity,
+                    TotalDiscount = ci.CarPart.DiscountPercent > 0
+                        ? (ci.CarPart.UnitPrice * ci.CarPart.DiscountPercent / 100) * ci.Quantity
+                        : (ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow()
+                            ? (ci.CarPart.Promotion.DiscountType == DiscountType.Percent
+                                ? (ci.CarPart.UnitPrice * ci.CarPart.Promotion.DiscountValue / 100) * ci.Quantity
+                                : ci.CarPart.Promotion.DiscountValue * ci.Quantity)
+                            : 0),
+                    FinalTotal = ci.CarPart.DiscountPercent > 0
+                        ? ci.CarPart.UnitPrice * (1 - ci.CarPart.DiscountPercent / 100) * ci.Quantity
+                        : (ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow()
+                            ? (ci.CarPart.Promotion.DiscountType == DiscountType.Percent
+                                ? ci.CarPart.UnitPrice * (1 - ci.CarPart.Promotion.DiscountValue / 100) * ci.Quantity
+                                : Math.Max(0, ci.CarPart.UnitPrice - ci.CarPart.Promotion.DiscountValue) * ci.Quantity)
+                            : ci.CarPart.UnitPrice * ci.Quantity),
                     CreatedAt = ci.CreatedAt,
                     IsAvailable = ci.CarPart.IsInStock(),
                     AvailableStock = ci.CarPart.StockQuantity
@@ -50,11 +69,30 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     ImageUrl = ci.CarPart.ImageUrl,
                     UnitPrice = ci.CarPart.UnitPrice,
                     DiscountPercent = ci.CarPart.DiscountPercent,
-                    FinalPrice = ci.CarPart.GetFinalPrice(),
+                    // PRIORITY RULE: If product has discount, use it. Otherwise use promotion.
+                    FinalPrice = ci.CarPart.DiscountPercent > 0
+                        ? ci.CarPart.UnitPrice * (1 - ci.CarPart.DiscountPercent / 100)
+                        : (ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow()
+                            ? (ci.CarPart.Promotion.DiscountType == DiscountType.Percent
+                                ? ci.CarPart.UnitPrice * (1 - ci.CarPart.Promotion.DiscountValue / 100)
+                                : Math.Max(0, ci.CarPart.UnitPrice - ci.CarPart.Promotion.DiscountValue))
+                            : ci.CarPart.UnitPrice),
                     Quantity = ci.Quantity,
                     TotalPrice = ci.CarPart.UnitPrice * ci.Quantity,
-                    TotalDiscount = (ci.CarPart.UnitPrice * ci.CarPart.DiscountPercent / 100) * ci.Quantity,
-                    FinalTotal = ci.CarPart.GetFinalPrice() * ci.Quantity,
+                    TotalDiscount = ci.CarPart.DiscountPercent > 0
+                        ? (ci.CarPart.UnitPrice * ci.CarPart.DiscountPercent / 100) * ci.Quantity
+                        : (ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow()
+                            ? (ci.CarPart.Promotion.DiscountType == DiscountType.Percent
+                                ? (ci.CarPart.UnitPrice * ci.CarPart.Promotion.DiscountValue / 100) * ci.Quantity
+                                : ci.CarPart.Promotion.DiscountValue * ci.Quantity)
+                            : 0),
+                    FinalTotal = ci.CarPart.DiscountPercent > 0
+                        ? ci.CarPart.UnitPrice * (1 - ci.CarPart.DiscountPercent / 100) * ci.Quantity
+                        : (ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow()
+                            ? (ci.CarPart.Promotion.DiscountType == DiscountType.Percent
+                                ? ci.CarPart.UnitPrice * (1 - ci.CarPart.Promotion.DiscountValue / 100) * ci.Quantity
+                                : Math.Max(0, ci.CarPart.UnitPrice - ci.CarPart.Promotion.DiscountValue) * ci.Quantity)
+                            : ci.CarPart.UnitPrice * ci.Quantity),
                     CreatedAt = ci.CreatedAt,
                     IsAvailable = ci.CarPart.IsInStock(),
                     AvailableStock = ci.CarPart.StockQuantity
@@ -67,7 +105,16 @@ namespace AutoPartsStore.Infrastructure.Repositories
             return await _context.CartItems
                 .Where(ci => ci.CartId == cartId)
                 .Include(ci => ci.CarPart)
-                .SumAsync(ci => ci.CarPart.GetFinalPrice() * ci.Quantity);
+                .ThenInclude(cp => cp.Promotion)
+                .SumAsync(ci => 
+                    // PRIORITY RULE: If product has discount, use it. Otherwise use promotion.
+                    ci.CarPart.DiscountPercent > 0
+                        ? ci.CarPart.UnitPrice * (1 - ci.CarPart.DiscountPercent / 100) * ci.Quantity
+                        : (ci.CarPart.Promotion != null && ci.CarPart.Promotion.IsActiveNow()
+                            ? (ci.CarPart.Promotion.DiscountType == DiscountType.Percent
+                                ? ci.CarPart.UnitPrice * (1 - ci.CarPart.Promotion.DiscountValue / 100) * ci.Quantity
+                                : Math.Max(0, ci.CarPart.UnitPrice - ci.CarPart.Promotion.DiscountValue) * ci.Quantity)
+                            : ci.CarPart.UnitPrice * ci.Quantity));
         }
     }
 }

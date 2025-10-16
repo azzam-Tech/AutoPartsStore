@@ -24,20 +24,20 @@ namespace AutoPartsStore.Infrastructure.Services
             IShoppingCartRepository cartRepository,
             IAddressRepository addressRepository,
             AppDbContext context,
-            ILogger<OrderService> _logger)
+            ILogger<OrderService> logger)
         {
             _orderRepository = orderRepository;
             _cartRepository = cartRepository;
             _addressRepository = addressRepository;
             _context = context;
-            this._logger = _logger;
+            _logger = logger;
         }
 
         public async Task<OrderDto> CreateOrderFromCartAsync(int userId, CreateOrderFromCartRequest request)
         {
             _logger.LogInformation("Creating order from cart for user {UserId}", userId);
 
-            // Get user's cart
+            // Get user's cart with calculated prices
             var cart = await _cartRepository.GetCartByUserIdAsync(userId);
             if (cart == null || !cart.Items.Any())
             {
@@ -63,12 +63,22 @@ namespace AutoPartsStore.Infrastructure.Services
                 Quantity = i.Quantity
             }).ToList());
 
-            // Create order with placeholder values (will be recalculated from OrderItems)
+            // ? CALCULATE ORDER TOTALS DIRECTLY FROM CART
+            // Cart has already calculated prices following the PRIORITY RULE (Product Discount > Promotion)
+            decimal orderSubTotal = cart.TotalPrice;      // Sum of all UnitPrice × Quantity (before discounts)
+            decimal orderDiscount = cart.TotalDiscount;   // Sum of all discounts applied
+            decimal orderTotal = cart.FinalTotal;         // Final total after all discounts
+
+            _logger.LogInformation(
+                "Calculated order totals from cart - SubTotal: {SubTotal} SAR, Discount: {Discount} SAR, Total: {Total} SAR",
+                orderSubTotal, orderDiscount, orderTotal);
+
+            // Create order with ACTUAL calculated values from cart (not placeholders!)
             var order = new Order(
                 userId,
                 request.ShippingAddressId,
-                0, // SubTotal - will be recalculated
-                0, // DiscountAmount - will be recalculated
+                orderSubTotal,
+                orderDiscount,
                 request.CustomerNotes
             );
 
@@ -76,7 +86,7 @@ namespace AutoPartsStore.Infrastructure.Services
             await _context.SaveChangesAsync();
 
             // Create order items from cart
-            // OrderItem constructor automatically calculates prices using the BEST discount logic
+            // OrderItem constructor will independently calculate prices to ensure data integrity
             foreach (var cartItem in cart.Items)
             {
                 var part = await _context.CarParts
@@ -105,26 +115,48 @@ namespace AutoPartsStore.Infrastructure.Services
 
             await _context.SaveChangesAsync();
 
-            // IMPORTANT: Recalculate order totals from actual order items
-            // OrderItem.CalculateAmounts() uses Math.Min to get the BEST price (product discount vs promotion)
-            var orderItems = await _context.OrderItems
-                .Where(oi => oi.OrderId == order.Id)
-                .ToListAsync();
+            // ? VERIFICATION: Ensure OrderItems totals match cart totals
+            // Load OrderItems and recalculate to verify consistency
+            await _context.Entry(order)
+                .Collection(o => o.OrderItems)
+                .LoadAsync();
+            
+            // Store original totals from cart
+            var originalSubTotal = order.SubTotal;
+            var originalDiscount = order.DiscountAmount;
+            var originalTotal = order.TotalAmount;
+            
+            // Recalculate from OrderItems
+            order.RecalculateTotalsFromItems();
 
-            decimal actualSubTotal = orderItems.Sum(oi => oi.SubTotal);
-            decimal actualDiscount = orderItems.Sum(oi => oi.DiscountAmount);
-
-            order.UpdateTotals(actualSubTotal, actualDiscount);
+            // Check for discrepancies (for debugging/logging)
+            if (Math.Abs(order.SubTotal - originalSubTotal) > 0.01m || 
+                Math.Abs(order.DiscountAmount - originalDiscount) > 0.01m || 
+                Math.Abs(order.TotalAmount - originalTotal) > 0.01m)
+            {
+                _logger.LogWarning(
+                    "Order totals recalculated from items differ from cart! " +
+                    "Cart: SubTotal={CartSubTotal}, Discount={CartDiscount}, Total={CartTotal} | " +
+                    "Items: SubTotal={ItemsSubTotal}, Discount={ItemsDiscount}, Total={ItemsTotal}",
+                    originalSubTotal, originalDiscount, originalTotal,
+                    order.SubTotal, order.DiscountAmount, order.TotalAmount);
+            }
+            else
+            {
+                _logger.LogInformation("? Order totals verified - Cart and OrderItems match perfectly!");
+            }
 
             await _context.SaveChangesAsync();
 
             // Clear the cart
             await ClearUserCartAsync(userId);
 
-            _logger.LogInformation("Order {OrderNumber} created successfully for user {UserId}. Total: {Total} SAR",
-                order.OrderNumber, userId, order.TotalAmount);
+            _logger.LogInformation(
+                "Order {OrderNumber} created successfully for user {UserId}. " +
+                "SubTotal: {SubTotal} SAR, Discount: {Discount} SAR, Total: {Total} SAR",
+                order.OrderNumber, userId, order.SubTotal, order.DiscountAmount, order.TotalAmount);
 
-            // Return order details
+            // Return complete order details
             return (await _orderRepository.GetByIdWithDetailsAsync(order.Id))!;
         }
 
