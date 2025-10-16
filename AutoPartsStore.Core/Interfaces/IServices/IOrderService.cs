@@ -7,7 +7,7 @@ namespace AutoPartsStore.Core.Interfaces.IServices
     public interface IOrderService
     {
         // Order CRUD
-        Task<OrderDto> CreateOrderFromCartAsync(int userId, CreateOrderRequest request);
+        Task<OrderDto> CreateOrderFromCartAsync(int userId, CreateOrderFromCartRequest request);
         Task<OrderDto> CreateOrderAsync(int userId, CreateOrderRequest request);
         Task<OrderDto?> GetOrderByIdAsync(int id);
         Task<OrderDto?> GetOrderByNumberAsync(string orderNumber);

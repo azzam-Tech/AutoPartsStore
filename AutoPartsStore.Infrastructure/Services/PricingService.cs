@@ -156,108 +156,7 @@ namespace AutoPartsStore.Infrastructure.Services
         }
 
 
-        #region new methods
 
-        //public ProductPriceDto CalculateProductPrice(decimal unitPrice, DiscountType discountType,
-        //                                          decimal discountValue, int quantity = 1)
-        //{
-        //    var finalUnitPrice = CalculateFinalPrice(unitPrice, discountType, discountValue);
-        //    var discountAmount = CalculateDiscountAmount(unitPrice, discountType, discountValue, quantity);
-
-        //    return new ProductPriceDto
-        //    {
-        //        UnitPrice = unitPrice,
-        //        DiscountType = discountType,
-        //        DiscountValue = discountValue,
-        //        FinalUnitPrice = finalUnitPrice,
-        //        Quantity = quantity,
-        //        TotalPrice = unitPrice * quantity,
-        //        DiscountAmount = discountAmount,
-        //        FinalTotal = finalUnitPrice * quantity
-        //    };
-        //}
-
-        ////public ProductPriceDto CalculateProductPrice(CarPart carPart, int quantity = 1)
-        ////{
-        ////    // نفترض أن CarPart له خصم نسبة مئوية فقط (للتتوافق مع الكود الحالي)
-        ////    return CalculateProductPrice(
-        ////        carPart.UnitPrice,
-        ////        DiscountType.Percent,
-        ////        carPart.DiscountPercent,
-        ////        quantity
-        ////    );
-        ////}
-
-        ////public ProductPriceDto CalculateProductPrice(Promotion promotion, CarPart carPart, int quantity = 1)
-        ////{
-        ////    // استخدام خصم الترويج إذا كان نشطاً
-        ////    if (promotion != null && promotion.IsActiveNow())
-        ////    {
-        ////        return CalculateProductPrice(
-        ////            carPart.UnitPrice,
-        ////            promotion.DiscountType,
-        ////            promotion.DiscountValue,
-        ////            quantity
-        ////        );
-        ////    }
-
-        ////    // استخدام خصم المنتج العادي
-        ////    return CalculateProductPrice(carPart, quantity);
-        ////}
-
-        ////public CartPriceSummaryDto CalculateCartPriceSummary(IEnumerable<CartItemPriceRequest> items)
-        ////{
-        ////    var itemList = items.ToList();
-
-        ////    var totalPrice = itemList.Sum(item => item.UnitPrice * item.Quantity);
-        ////    var totalDiscount = itemList.Sum(item =>
-        ////        CalculateDiscountAmount(item.UnitPrice, item.DiscountType, item.DiscountValue, item.Quantity));
-        ////    var finalTotal = totalPrice - totalDiscount;
-
-        ////    return new CartPriceSummaryDto
-        ////    {
-        ////        TotalPrice = totalPrice,
-        ////        TotalDiscount = totalDiscount,
-        ////        FinalTotal = finalTotal,
-        ////        TotalItems = itemList.Sum(item => item.Quantity)
-        ////    };
-        ////}
-
-        //public decimal CalculateFinalPrice(decimal unitPrice, DiscountType discountType, decimal discountValue)
-        //{
-        //    return discountType switch
-        //    {
-        //        DiscountType.Percent => unitPrice * (1 - discountValue / 100),
-        //        DiscountType.Fixed => Math.Max(unitPrice - discountValue, 0), // لا يقل عن صفر
-        //        _ => unitPrice
-        //    };
-        //}
-
-        //public decimal CalculateDiscountAmount(decimal unitPrice, DiscountType discountType,
-        //                                     decimal discountValue, int quantity = 1)
-        //{
-        //    var discountPerUnit = discountType switch
-        //    {
-        //        DiscountType.Percent => unitPrice * discountValue / 100,
-        //        DiscountType.Fixed => discountValue,
-        //        _ => 0
-        //    };
-
-        //    return discountPerUnit * quantity;
-        //}
-
-        //// دوال مساعدة للتوافق مع الكود الحالي
-        //public decimal CalculateFinalPrice(decimal unitPrice, decimal discountPercent)
-        //{
-        //    return CalculateFinalPrice(unitPrice, DiscountType.Percent, discountPercent);
-        //}
-
-        //public decimal CalculateDiscountAmount(decimal unitPrice, decimal discountPercent, int quantity = 1)
-        //{
-        //    return CalculateDiscountAmount(unitPrice, DiscountType.Percent, discountPercent, quantity);
-        //}
-
-        #endregion
 
         public decimal CalculateFinalPrice(decimal unitPrice, DiscountType discountType, decimal discountValue)
         {
@@ -293,5 +192,62 @@ namespace AutoPartsStore.Infrastructure.Services
             return finalUnitPrice * quantity;
         }
 
+        /// <summary>
+        /// Calculates the best final price considering BOTH product discount AND promotion.
+        /// Returns the lower price (better for customer).
+        /// Matches OrderItem.CalculateAmounts() logic.
+        /// </summary>
+        public decimal CalculateBestFinalPrice(
+            decimal unitPrice, 
+            decimal discountPercent,
+            Promotion? promotion)
+        {
+            // Calculate price after product discount
+            decimal priceAfterProductDiscount = discountPercent > 0
+                ? unitPrice * (1 - discountPercent / 100)
+                : unitPrice;
+            
+            // If no active promotion, return product discount price
+            if (promotion == null || !promotion.IsActiveNow())
+                return priceAfterProductDiscount;
+            
+            // Calculate price after promotion
+            decimal priceAfterPromotion = promotion.DiscountType == DiscountType.Percent
+                ? unitPrice * (1 - promotion.DiscountValue / 100)
+                : Math.Max(0, unitPrice - promotion.DiscountValue);
+            
+            // Return the BEST price (lower value) - same as OrderItem logic
+            return Math.Min(priceAfterProductDiscount, priceAfterPromotion);
+        }
+
+        /// <summary>
+        /// Calculates total discount amount considering BOTH product discount AND promotion.
+        /// Uses the better discount.
+        /// </summary>
+        public decimal CalculateBestTotalDiscount(
+            decimal unitPrice,
+            decimal discountPercent,
+            Promotion? promotion,
+            int quantity)
+        {
+            decimal finalPrice = CalculateBestFinalPrice(unitPrice, discountPercent, promotion);
+            decimal totalBeforeDiscount = unitPrice * quantity;
+            decimal totalAfterDiscount = finalPrice * quantity;
+            
+            return totalBeforeDiscount - totalAfterDiscount;
+        }
+
+        /// <summary>
+        /// Calculates final total considering BOTH product discount AND promotion.
+        /// </summary>
+        public decimal CalculateBestFinalTotal(
+            decimal unitPrice,
+            decimal discountPercent,
+            Promotion? promotion,
+            int quantity)
+        {
+            decimal finalPrice = CalculateBestFinalPrice(unitPrice, discountPercent, promotion);
+            return finalPrice * quantity;
+        }
     }
 }

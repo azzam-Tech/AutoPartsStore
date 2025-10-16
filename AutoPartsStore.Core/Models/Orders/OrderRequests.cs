@@ -2,6 +2,20 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AutoPartsStore.Core.Models.Orders
 {
+    /// <summary>
+    /// Request model for creating order from shopping cart
+    /// </summary>
+    public class CreateOrderFromCartRequest
+    {
+        [Required]
+        public int ShippingAddressId { get; set; }
+        
+        public string? CustomerNotes { get; set; }
+    }
+
+    /// <summary>
+    /// Request model for creating order directly (without cart)
+    /// </summary>
     public class CreateOrderRequest
     {
         [Required]
@@ -9,8 +23,9 @@ namespace AutoPartsStore.Core.Models.Orders
         
         public string? CustomerNotes { get; set; }
         
-        // Optionally accept cart items if not using shopping cart
-        public List<CreateOrderItemRequest>? Items { get; set; }
+        [Required]
+        [MinLength(1, ErrorMessage = "At least one item is required")]
+        public List<CreateOrderItemRequest> Items { get; set; } = new();
     }
 
     public class CreateOrderItemRequest

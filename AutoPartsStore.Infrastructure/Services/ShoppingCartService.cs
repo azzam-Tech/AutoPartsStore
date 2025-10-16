@@ -44,8 +44,8 @@ namespace AutoPartsStore.Infrastructure.Services
                                TotalPrice = cart.Items.Sum(ci => ci.CarPart.UnitPrice * ci.Quantity),
                                //TotalDiscount = cart.Items.Sum(ci => ci.CarPart.DiscountPercent == 0 && ci.CarPart.Promotion != null ? _pricingService.CalculateTotalDiscount(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity) : (ci.CarPart.UnitPrice * ci.CarPart.DiscountPercent / 100) * ci.Quantity),
                                //FinalTotal = cart.Items.Sum(ci => ci.CarPart.DiscountPercent == 0 && ci.CarPart.Promotion != null ? _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, ci.CarPart.Promotion.DiscountType, ci.CarPart.Promotion.DiscountValue, ci.Quantity) : _pricingService.CalculateFinalTotal(ci.CarPart.UnitPrice, DiscountType.Percent, ci.CarPart.DiscountPercent, ci.Quantity)),
-                               TotalDiscount = 0,
-                               FinalTotal = 0,
+                               TotalDiscount = 0, //I will fix it later
+                               FinalTotal = 0, //I will fix it later
                                Items = cart.Items.Select(ci => new CartItemDto
                                {
                                    Id = ci.Id,

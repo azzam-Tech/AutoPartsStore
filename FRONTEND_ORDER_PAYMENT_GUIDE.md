@@ -164,6 +164,8 @@ DiscountAmount = SubTotal - TotalAmount
 }
 ```
 
+**Note:** ?? **You do NOT need to send cart items!** The backend automatically fetches items from your shopping cart.
+
 **Response (Success - 200):**
 ```json
 {

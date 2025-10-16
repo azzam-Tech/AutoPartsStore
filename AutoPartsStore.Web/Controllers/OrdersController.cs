@@ -27,7 +27,7 @@ namespace AutoPartsStore.Web.Controllers
         /// </summary>
         [HttpPost("from-cart")]
         [Authorize]
-        public async Task<IActionResult> CreateOrderFromCart([FromBody] CreateOrderRequest request)
+        public async Task<IActionResult> CreateOrderFromCart([FromBody] CreateOrderFromCartRequest request)
         {
             var userId = GetAuthenticatedUserId();
             var order = await _orderService.CreateOrderFromCartAsync(userId, request);

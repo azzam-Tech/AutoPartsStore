@@ -35,7 +35,7 @@ namespace AutoPartsStore.Infrastructure.Services
             _logger = logger;
         }
 
-        public async Task<OrderDto> CreateOrderFromCartAsync(int userId, CreateOrderRequest request)
+        public async Task<OrderDto> CreateOrderFromCartAsync(int userId, CreateOrderFromCartRequest request)
         {
             _logger.LogInformation("Creating order from cart for user {UserId}", userId);
 
@@ -108,6 +108,20 @@ namespace AutoPartsStore.Infrastructure.Services
 
                 await _context.OrderItems.AddAsync(orderItem);
             }
+
+            await _context.SaveChangesAsync();
+
+            // IMPORTANT: Recalculate order totals from actual order items
+            // This ensures order header matches the sum of order items
+            var orderItems = await _context.OrderItems
+                .Where(oi => oi.OrderId == order.Id)
+                .ToListAsync();
+
+            decimal actualSubTotal = orderItems.Sum(oi => oi.SubTotal);
+            decimal actualDiscount = orderItems.Sum(oi => oi.DiscountAmount);
+            decimal actualTax = (actualSubTotal - actualDiscount) * VAT_RATE;
+
+            order.UpdateTotals(actualSubTotal, actualDiscount, actualTax);
 
             await _context.SaveChangesAsync();
 
@@ -215,6 +229,20 @@ namespace AutoPartsStore.Infrastructure.Services
 
                 await _context.OrderItems.AddAsync(orderItem);
             }
+
+            await _context.SaveChangesAsync();
+
+            // IMPORTANT: Recalculate order totals from actual order items
+            // This ensures order header matches the sum of order items
+            var orderItemsList = await _context.OrderItems
+                .Where(oi => oi.OrderId == order.Id)
+                .ToListAsync();
+
+            decimal actualSubTotal = orderItemsList.Sum(oi => oi.SubTotal);
+            decimal actualDiscount = orderItemsList.Sum(oi => oi.DiscountAmount);
+            decimal actualTax = (actualSubTotal - actualDiscount) * VAT_RATE;
+
+            order.UpdateTotals(actualSubTotal, actualDiscount, actualTax);
 
             await _context.SaveChangesAsync();
 

@@ -193,5 +193,14 @@ namespace AutoPartsStore.Core.Entities
                    Status == OrderStatus.Processing || 
                    Status == OrderStatus.Shipped;
         }
+
+        public void UpdateTotals(decimal subTotal, decimal discountAmount, decimal taxAmount)
+        {
+            SubTotal = subTotal;
+            DiscountAmount = discountAmount;
+            TaxAmount = taxAmount;
+            TotalAmount = (subTotal - discountAmount) + taxAmount + ShippingCost;
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
 }
