@@ -23,14 +23,14 @@ namespace AutoPartsStore.Infrastructure.Services
             _logger = logger;
         }
 
-        public async Task<List<ProductReviewDto>> GetReviewsAsync(bool? approvedOnly)
+        public async Task<List<ProductReviewDto>> GetReviewsAsync(ProductReviewstatus? productReviewstatus)
         {
-            return await _reviewRepository.GetReviewsAsync(approvedOnly);
+            return await _reviewRepository.GetReviewsAsync(productReviewstatus);
         }
 
-        public async Task<List<ProductReviewDto>> GetProductReviewsAsync(int partId, bool? approvedOnly = true)
+        public async Task<List<ProductReviewDto>> GetProductReviewsAsync(int partId, ProductReviewstatus? productReviewstatus)
         {
-            return await _reviewRepository.GetReviewsByPartIdAsync(partId, approvedOnly);
+            return await _reviewRepository.GetReviewsByPartIdAsync(partId, productReviewstatus);
         }
 
         public async Task<List<ProductReviewDto>> GetUserReviewsAsync(int userId)

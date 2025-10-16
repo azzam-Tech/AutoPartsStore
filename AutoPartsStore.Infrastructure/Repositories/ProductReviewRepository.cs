@@ -10,13 +10,26 @@ namespace AutoPartsStore.Infrastructure.Repositories
     {
         public ProductReviewRepository(AppDbContext context) : base(context) { }
 
-        public async Task<List<ProductReviewDto>> GetReviewsAsync(bool? approvedOnly)
+        public async Task<List<ProductReviewDto>> GetReviewsAsync(ProductReviewstatus? productReviewstatus)
         {
             var query = _context.ProductReviews
                 .AsQueryable();
 
-            if (approvedOnly.HasValue)
-                query = query.Where(r => r.IsApproved == approvedOnly.Value);
+            if (productReviewstatus.HasValue)
+            {
+                switch (productReviewstatus.Value)
+                {
+                    case ProductReviewstatus.IsApproved:
+                        query = query.Where(r => r.IsApproved == true);
+                        break;
+                    case ProductReviewstatus.IsNotApproved:
+                        query = query.Where(r => r.IsApproved == false);
+                        break;
+                    case ProductReviewstatus.IsPending:
+                        query = query.Where(r => r.IsApproved == null);
+                        break;
+                }
+            }
 
             return await query
                 .OrderByDescending(r => r.ReviewDate)
@@ -37,14 +50,27 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<List<ProductReviewDto>> GetReviewsByPartIdAsync(int partId, bool? approvedOnly = true)
+        public async Task<List<ProductReviewDto>> GetReviewsByPartIdAsync(int partId, ProductReviewstatus? productReviewstatus)
         {
             var query = _context.ProductReviews
                 .Where(r => r.PartId == partId)
                 .AsQueryable();
 
-            if (approvedOnly.HasValue)
-                query = query.Where(r => r.IsApproved == approvedOnly.Value);
+            if (productReviewstatus.HasValue)
+            {
+                switch (productReviewstatus.Value)
+                {
+                    case ProductReviewstatus.IsApproved:
+                        query = query.Where(r => r.IsApproved == true);
+                        break;
+                    case ProductReviewstatus.IsNotApproved:
+                        query = query.Where(r => r.IsApproved == false);
+                        break;
+                    case ProductReviewstatus.IsPending:
+                        query = query.Where(r => r.IsApproved == null);
+                        break;
+                }
+            }
 
             return await query
                 .OrderByDescending(r => r.ReviewDate)
@@ -181,12 +207,25 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 .AverageAsync(r => (double?)r.Rating) ?? 0;
         }
 
-        public async Task<int> GetReviewCountAsync(int partId, bool? approvedOnly = true)
+        public async Task<int> GetReviewCountAsync(int partId, ProductReviewstatus? productReviewstatus)
         {
             var query = _context.ProductReviews.Where(r => r.PartId == partId);
 
-            if (approvedOnly.HasValue)
-                query = query.Where(r => r.IsApproved == approvedOnly.Value);
+            if (productReviewstatus.HasValue)
+            {
+                switch (productReviewstatus.Value)
+                {
+                    case ProductReviewstatus.IsApproved:
+                        query = query.Where(r => r.IsApproved == true);
+                        break;
+                    case ProductReviewstatus.IsNotApproved:
+                        query = query.Where(r => r.IsApproved == false);
+                        break;
+                    case ProductReviewstatus.IsPending:
+                        query = query.Where(r => r.IsApproved == null);
+                        break;
+                }
+            }
 
             return await query.CountAsync();
         }

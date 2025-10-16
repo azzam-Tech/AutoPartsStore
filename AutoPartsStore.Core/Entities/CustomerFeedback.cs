@@ -74,6 +74,10 @@ namespace AutoPartsStore.Core.Entities
         {
             IsFeatured = false;
         }
+        public void ClearFeature()
+        {
+            IsFeatured = null;
+        }
     }
 
     public enum FeedbackType

@@ -1,4 +1,5 @@
-﻿using AutoPartsStore.Core.Models.Review;
+﻿using AutoPartsStore.Core.Entities;
+using AutoPartsStore.Core.Models.Review;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -22,17 +23,17 @@ namespace AutoPartsStore.Web.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetAllReviews([FromQuery] bool? approvedOnly)
+        public async Task<IActionResult> GetAllReviews([FromQuery] ProductReviewstatus? productReviewstatus)
         {
-            var reviews = await _reviewService.GetReviewsAsync(approvedOnly);
+            var reviews = await _reviewService.GetReviewsAsync(productReviewstatus);
             return Success(reviews);
         }
 
         [HttpGet("product/{partId}")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetProductReviews(int partId, [FromQuery] bool? approvedOnly = true)
+        public async Task<IActionResult> GetProductReviews(int partId, [FromQuery] ProductReviewstatus? productReviewstatus)
         {
-            var reviews = await _reviewService.GetProductReviewsAsync(partId, approvedOnly);
+            var reviews = await _reviewService.GetProductReviewsAsync(partId, productReviewstatus);
             return Success(reviews);
         }
 

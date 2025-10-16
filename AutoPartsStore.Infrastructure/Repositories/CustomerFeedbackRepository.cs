@@ -27,7 +27,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     if (filter.Feedbackstatus.Value == Feedbackstatus.IsApproved)
                         query = query.Where(cf => cf.IsFeatured == true);
                     else if (filter.Feedbackstatus.Value == Feedbackstatus.IsNotApproved)
-                        query = query.Where(cf => !cf.IsFeatured == false);
+                        query = query.Where(cf => cf.IsFeatured == false);
                     else if (filter.Feedbackstatus.Value == Feedbackstatus.IsPending)
                         query = query.Where(cf => cf.IsFeatured == null);
                 }
@@ -64,7 +64,8 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     Rate = cf.Rate,
                     RateStars = new string('★', cf.Rate) + new string('☆', 5 - cf.Rate),
                     CreatedDate = cf.CreatedDate,
-                    TimeAgo = GetTimeAgo(cf.CreatedDate)
+                    TimeAgo = GetTimeAgo(cf.CreatedDate),
+                    IsFeatured = cf.IsFeatured
                 })
                 .ToListAsync();
         }
@@ -86,7 +87,8 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     Rate = cf.Rate,
                     RateStars = new string('★', cf.Rate) + new string('☆', 5 - cf.Rate),
                     CreatedDate = cf.CreatedDate,
-                    TimeAgo = GetTimeAgo(cf.CreatedDate)
+                    TimeAgo = GetTimeAgo(cf.CreatedDate),
+                    IsFeatured = cf.IsFeatured
                 })
                 .FirstOrDefaultAsync();
         }
@@ -109,7 +111,8 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     Rate = cf.Rate,
                     RateStars = new string('★', cf.Rate) + new string('☆', 5 - cf.Rate),
                     CreatedDate = cf.CreatedDate,
-                    TimeAgo = GetTimeAgo(cf.CreatedDate)
+                    TimeAgo = GetTimeAgo(cf.CreatedDate),
+                    IsFeatured = cf.IsFeatured
                 })
                 .ToListAsync();
         }
@@ -166,7 +169,8 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     Rate = cf.Rate,
                     RateStars = new string('★', cf.Rate) + new string('☆', 5 - cf.Rate),
                     CreatedDate = cf.CreatedDate,
-                    TimeAgo = GetTimeAgo(cf.CreatedDate)
+                    TimeAgo = GetTimeAgo(cf.CreatedDate),
+                    IsFeatured = cf.IsFeatured
                 })
                 .ToListAsync();
         }
