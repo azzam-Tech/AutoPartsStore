@@ -3,8 +3,14 @@
     /// <summary>
     /// خطأ متعلق بالـ Business Logic (مثلاً: حي مكرر داخل نفس المدينة)
     /// </summary>
-    public class BusinessException : Exception
+    public class BusinessException : AppException
     {
-        public BusinessException(string message) : base(message) { }
+        public BusinessException(
+            string message,
+            string errorCode = "BUSINESS_RULE_VIOLATION",
+            Dictionary<string, object>? additionalData = null)
+            : base(message, errorCode, additionalData)
+        {
+        }
     }
 }

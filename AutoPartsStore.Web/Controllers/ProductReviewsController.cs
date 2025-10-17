@@ -1,4 +1,5 @@
-﻿using AutoPartsStore.Core.Models.Review;
+﻿using AutoPartsStore.Core.Entities;
+using AutoPartsStore.Core.Models.Review;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -22,17 +23,17 @@ namespace AutoPartsStore.Web.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetAllReviews([FromQuery] bool? approvedOnly)
+        public async Task<IActionResult> GetAllReviews([FromQuery] ProductReviewstatus? productReviewstatus)
         {
-            var reviews = await _reviewService.GetReviewsAsync(approvedOnly);
+            var reviews = await _reviewService.GetReviewsAsync(productReviewstatus);
             return Success(reviews);
         }
 
         [HttpGet("product/{partId}")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetProductReviews(int partId, [FromQuery] bool? approvedOnly = true)
+        public async Task<IActionResult> GetProductReviews(int partId, [FromQuery] ProductReviewstatus? productReviewstatus)
         {
-            var reviews = await _reviewService.GetProductReviewsAsync(partId, approvedOnly);
+            var reviews = await _reviewService.GetProductReviewsAsync(partId, productReviewstatus);
             return Success(reviews);
         }
 
@@ -123,6 +124,11 @@ namespace AutoPartsStore.Web.Controllers
             }
         }
 
+        /// <summary>
+        /// Approve, reject, or set review to pending
+        /// </summary>
+        /// <param name="reviewId">Review ID</param>
+        /// <param name="request">Approval request (null = Pending, true = Approved, false = Rejected)</param>
         [HttpPatch("{reviewId}/approval")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ApproveReview(int reviewId, [FromBody] ReviewApprovalRequest request)
@@ -130,7 +136,15 @@ namespace AutoPartsStore.Web.Controllers
             try
             {
                 await _reviewService.ApproveReviewAsync(reviewId, request.IsApproved);
-                return Success($"Review {(request.IsApproved ? "approved" : "rejected")} successfully");
+                
+                var statusMessage = request.IsApproved switch
+                {
+                    true => "approved",
+                    false => "rejected",
+                    null => "set to pending"
+                };
+                
+                return Success($"Review {statusMessage} successfully");
             }
             catch (Exception ex)
             {

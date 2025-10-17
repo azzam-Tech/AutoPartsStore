@@ -88,6 +88,7 @@ namespace AutoPartsStore.Infrastructure.Services
 
             if (request.FeedbackType.HasValue)
                 type.GetProperty("FeedbackType")?.SetValue(feedback, request.FeedbackType.Value);
+            feedback.ClearFeature();
 
             _context.CustomerFeedbacks.Update(feedback);
             await _context.SaveChangesAsync();

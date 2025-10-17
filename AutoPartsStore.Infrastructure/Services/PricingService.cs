@@ -25,47 +25,30 @@ namespace AutoPartsStore.Infrastructure.Services
         {
             try
             {
-                decimal finalPrice = 0;
+                decimal finalPrice;
 
+                // RULE: Product discount has PRIORITY over promotion
                 if (carPart.DiscountPercent > 0)
                 {
-                    // الأولوية للخصم الخاص بالمنتج
+                    // Use product discount
                     finalPrice = carPart.UnitPrice * (1 - carPart.DiscountPercent / 100);
                     _logger.LogInformation("Using product discount for part {PartId}: {Discount}%",
                         carPart.Id, carPart.DiscountPercent);
                 }
-                else if (promotion == null)
+                else if (promotion != null && promotion.IsActiveNow())
                 {
-                    if (carPart.DiscountPercent > 0)
-                    {
-                        // الأولوية للخصم الخاص بالمنتج
-                        finalPrice = carPart.UnitPrice * (1 - carPart.DiscountPercent / 100);
-                        _logger.LogInformation("Using product discount for part {PartId}: {Discount}%",
-                            carPart.Id, carPart.DiscountPercent);
-                    }
-                    else
-                    {
-                        finalPrice = carPart.UnitPrice;
-                    }
+                    // Use promotion only if no product discount
+                    finalPrice = CalculatePriceWithPromotion(carPart.UnitPrice, promotion);
+                    _logger.LogInformation("Using promotion for part {PartId}: {PromotionName}",
+                        carPart.Id, promotion.PromotionName);
                 }
                 else
                 {
-                    if (promotion.IsActive || promotion.IsActiveNow())
-                    {
-                        finalPrice = CalculatePriceWithPromotion(carPart.UnitPrice, promotion);
-                        carPart.UpdateFinalPrice(finalPrice);
-                        _logger.LogInformation("Using promotion for part {PartId}: {PromotionValue}",
-                                  carPart.Id, finalPrice);
-                    }
-                    else
-                    {
-                        finalPrice = carPart.UnitPrice;
-                    }
-
+                    // No discount
+                    finalPrice = carPart.UnitPrice;
                 }
 
                 carPart.UpdateFinalPrice(finalPrice);
-
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Final price updated for part {PartId}: {FinalPrice}",
@@ -77,71 +60,6 @@ namespace AutoPartsStore.Infrastructure.Services
                 throw;
             }
         }
-
-        //public async Task RecalculateAllPricesAsync()
-        //{
-        //    try
-        //    {
-        //        var carPartIds = await _context.CarParts
-        //            .Where(p => !p.IsDeleted)
-        //            .Select(p => p.Id)
-        //            .ToListAsync();
-
-        //        foreach (var partId in carPartIds)
-        //        {
-        //            await CalculateAndUpdateFinalPriceAsync(partId);
-        //        }
-
-        //        _logger.LogInformation("Recalculated prices for {Count} car parts", carPartIds.Count);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error recalculating all prices");
-        //        throw;
-        //    }
-        //}
-
-        //public async Task ApplyPromotionToProductAsync(int promotionId, int carPartId)
-        //{
-        //    try
-        //    {
-        //        // التحقق من وجود العرض والمنتج
-        //        var promotion = await _promotionRepository.GetByIdAsync(promotionId);
-        //        var carPart = await _context.CarParts.FindAsync(carPartId);
-
-        //        if (promotion == null || promotion.IsDeleted)
-        //            throw new ArgumentException("Promotion not found or deleted");
-
-        //        if (carPart == null || carPart.IsDeleted)
-        //            throw new ArgumentException("Car part not found or deleted");
-
-        //        await CalculateAndUpdateFinalPriceAsync(carPartId);
-        //        _logger.LogInformation("Applied promotion {PromotionId} to product {PartId}",
-        //            promotionId, carPartId);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error applying promotion {PromotionId} to product {PartId}",
-        //            promotionId, carPartId);
-        //        throw;
-        //    }
-        //}
-
-        //public async Task RemovePromotionFromProductAsync(int carPartId)
-        //{
-        //    try
-        //    {
-        //        await CalculateAndUpdateFinalPriceAsync(carPartId);
-        //        _logger.LogInformation("Removed promotions from product {PartId}", carPartId);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error removing promotions from product {PartId}", carPartId);
-        //        throw;
-        //    }
-        //}
-
-
 
         private decimal CalculatePriceWithPromotion(decimal unitPrice, Promotion promotion)
         {
@@ -155,127 +73,81 @@ namespace AutoPartsStore.Infrastructure.Services
             }
         }
 
+        /// <summary>
+        /// Calculate final price per unit
+        /// RULE: If product has discount, use it. Otherwise use promotion.
+        /// </summary>
+        public decimal CalculateFinalPrice(decimal unitPrice, decimal productDiscountPercent, Promotion? promotion)
+        {
+            // Product discount has priority
+            if (productDiscountPercent > 0)
+            {
+                return unitPrice * (1 - productDiscountPercent / 100);
+            }
+            
+            // Use promotion if no product discount
+            if (promotion != null && promotion.IsActiveNow())
+            {
+                if (promotion.DiscountType == DiscountType.Percent)
+                {
+                    return unitPrice * (1 - promotion.DiscountValue / 100);
+                }
+                else
+                {
+                    return Math.Max(0, unitPrice - promotion.DiscountValue);
+                }
+            }
+            
+            // No discount
+            return unitPrice;
+        }
 
-        #region new methods
-
-        //public ProductPriceDto CalculateProductPrice(decimal unitPrice, DiscountType discountType,
-        //                                          decimal discountValue, int quantity = 1)
-        //{
-        //    var finalUnitPrice = CalculateFinalPrice(unitPrice, discountType, discountValue);
-        //    var discountAmount = CalculateDiscountAmount(unitPrice, discountType, discountValue, quantity);
-
-        //    return new ProductPriceDto
-        //    {
-        //        UnitPrice = unitPrice,
-        //        DiscountType = discountType,
-        //        DiscountValue = discountValue,
-        //        FinalUnitPrice = finalUnitPrice,
-        //        Quantity = quantity,
-        //        TotalPrice = unitPrice * quantity,
-        //        DiscountAmount = discountAmount,
-        //        FinalTotal = finalUnitPrice * quantity
-        //    };
-        //}
-
-        ////public ProductPriceDto CalculateProductPrice(CarPart carPart, int quantity = 1)
-        ////{
-        ////    // نفترض أن CarPart له خصم نسبة مئوية فقط (للتتوافق مع الكود الحالي)
-        ////    return CalculateProductPrice(
-        ////        carPart.UnitPrice,
-        ////        DiscountType.Percent,
-        ////        carPart.DiscountPercent,
-        ////        quantity
-        ////    );
-        ////}
-
-        ////public ProductPriceDto CalculateProductPrice(Promotion promotion, CarPart carPart, int quantity = 1)
-        ////{
-        ////    // استخدام خصم الترويج إذا كان نشطاً
-        ////    if (promotion != null && promotion.IsActiveNow())
-        ////    {
-        ////        return CalculateProductPrice(
-        ////            carPart.UnitPrice,
-        ////            promotion.DiscountType,
-        ////            promotion.DiscountValue,
-        ////            quantity
-        ////        );
-        ////    }
-
-        ////    // استخدام خصم المنتج العادي
-        ////    return CalculateProductPrice(carPart, quantity);
-        ////}
-
-        ////public CartPriceSummaryDto CalculateCartPriceSummary(IEnumerable<CartItemPriceRequest> items)
-        ////{
-        ////    var itemList = items.ToList();
-
-        ////    var totalPrice = itemList.Sum(item => item.UnitPrice * item.Quantity);
-        ////    var totalDiscount = itemList.Sum(item =>
-        ////        CalculateDiscountAmount(item.UnitPrice, item.DiscountType, item.DiscountValue, item.Quantity));
-        ////    var finalTotal = totalPrice - totalDiscount;
-
-        ////    return new CartPriceSummaryDto
-        ////    {
-        ////        TotalPrice = totalPrice,
-        ////        TotalDiscount = totalDiscount,
-        ////        FinalTotal = finalTotal,
-        ////        TotalItems = itemList.Sum(item => item.Quantity)
-        ////    };
-        ////}
-
-        //public decimal CalculateFinalPrice(decimal unitPrice, DiscountType discountType, decimal discountValue)
-        //{
-        //    return discountType switch
-        //    {
-        //        DiscountType.Percent => unitPrice * (1 - discountValue / 100),
-        //        DiscountType.Fixed => Math.Max(unitPrice - discountValue, 0), // لا يقل عن صفر
-        //        _ => unitPrice
-        //    };
-        //}
-
-        //public decimal CalculateDiscountAmount(decimal unitPrice, DiscountType discountType,
-        //                                     decimal discountValue, int quantity = 1)
-        //{
-        //    var discountPerUnit = discountType switch
-        //    {
-        //        DiscountType.Percent => unitPrice * discountValue / 100,
-        //        DiscountType.Fixed => discountValue,
-        //        _ => 0
-        //    };
-
-        //    return discountPerUnit * quantity;
-        //}
-
-        //// دوال مساعدة للتوافق مع الكود الحالي
-        //public decimal CalculateFinalPrice(decimal unitPrice, decimal discountPercent)
-        //{
-        //    return CalculateFinalPrice(unitPrice, DiscountType.Percent, discountPercent);
-        //}
-
-        //public decimal CalculateDiscountAmount(decimal unitPrice, decimal discountPercent, int quantity = 1)
-        //{
-        //    return CalculateDiscountAmount(unitPrice, DiscountType.Percent, discountPercent, quantity);
-        //}
-
-        #endregion
-
+        /// <summary>
+        /// Calculate final price - legacy method for backward compatibility
+        /// </summary>
         public decimal CalculateFinalPrice(decimal unitPrice, DiscountType discountType, decimal discountValue)
         {
             return discountType switch
             {
                 DiscountType.Percent => unitPrice * (1 - discountValue / 100),
-                DiscountType.Fixed => Math.Max(unitPrice - discountValue, 0), // لا يقل عن صفر
+                DiscountType.Fixed => Math.Max(unitPrice - discountValue, 0),
                 _ => unitPrice
             };
         }
 
+        /// <summary>
+        /// Calculate total price (UnitPrice * Quantity) before any discount
+        /// </summary>
         public decimal CalculateTotalPrice(decimal unitPrice, int quantity = 1)
         {
             return unitPrice * quantity;
         }
 
-        public decimal CalculateTotalDiscount(decimal unitPrice, DiscountType discountType,
-                                       decimal discountValue, int quantity = 1)
+        /// <summary>
+        /// Calculate total discount amount
+        /// RULE: If product has discount, use it. Otherwise use promotion.
+        /// </summary>
+        public decimal CalculateTotalDiscount(
+            decimal unitPrice,
+            decimal productDiscountPercent,
+            Promotion? promotion,
+            int quantity)
+        {
+            decimal finalPrice = CalculateFinalPrice(unitPrice, productDiscountPercent, promotion);
+            decimal totalBeforeDiscount = unitPrice * quantity;
+            decimal totalAfterDiscount = finalPrice * quantity;
+            
+            return totalBeforeDiscount - totalAfterDiscount;
+        }
+
+        /// <summary>
+        /// Calculate total discount - legacy method for backward compatibility
+        /// </summary>
+        public decimal CalculateTotalDiscount(
+            decimal unitPrice,
+            DiscountType discountType,
+            decimal discountValue,
+            int quantity = 1)
         {
             var discountPerUnit = discountType switch
             {
@@ -286,12 +158,31 @@ namespace AutoPartsStore.Infrastructure.Services
             return discountPerUnit * quantity;
         }
 
-        public decimal CalculateFinalTotal(decimal unitPrice, DiscountType discountType,
-                                       decimal discountValue, int quantity = 1)
+        /// <summary>
+        /// Calculate final total (after discount, with quantity)
+        /// RULE: If product has discount, use it. Otherwise use promotion.
+        /// </summary>
+        public decimal CalculateFinalTotal(
+            decimal unitPrice,
+            decimal productDiscountPercent,
+            Promotion? promotion,
+            int quantity)
+        {
+            decimal finalPrice = CalculateFinalPrice(unitPrice, productDiscountPercent, promotion);
+            return finalPrice * quantity;
+        }
+
+        /// <summary>
+        /// Calculate final total - legacy method for backward compatibility
+        /// </summary>
+        public decimal CalculateFinalTotal(
+            decimal unitPrice,
+            DiscountType discountType,
+            decimal discountValue,
+            int quantity = 1)
         {
             var finalUnitPrice = CalculateFinalPrice(unitPrice, discountType, discountValue);
             return finalUnitPrice * quantity;
         }
-
     }
 }

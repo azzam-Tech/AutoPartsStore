@@ -146,6 +146,9 @@ namespace AutoPartsStore.Core.Entities
             UpdatedAt = DateTime.UtcNow;
         }
 
+        // Alias for compatibility
+        public void AddStock(int quantity) => IncreaseStock(quantity);
+
         public void UpdateImage(string imageUrl)
         {
             ImageUrl = imageUrl;

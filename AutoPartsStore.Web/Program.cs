@@ -3,12 +3,14 @@ using AutoPartsStore.Core.Interfaces.IRepositories;
 using AutoPartsStore.Core.Interfaces.IServices;
 using AutoPartsStore.Core.Interfaces.IServices.IEmailSirvices;
 using AutoPartsStore.Core.Models;
+using AutoPartsStore.Core.Models.Payments.Tap;
 using AutoPartsStore.Infrastructure.Data;
 using AutoPartsStore.Infrastructure.Repositories;
 using AutoPartsStore.Infrastructure.Services;
 using AutoPartsStore.Infrastructure.Services.EmailServices;
 using AutoPartsStore.Infrastructure.Utils;
 using AutoPartsStore.Web.Extensions;
+using AutoPartsStore.Web.Filters;
 using AutoPartsStore.Web.Middleware;
 using AutoPartsStore.Web.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -21,14 +23,26 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Add model validation filter globally
+    options.Filters.Add<ModelValidationFilter>();
+});
+
+// Add error handling services
+builder.Services.AddErrorHandling();
 
 // Add Swagger services
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo 
+    { 
+        Title = "AutoParts Store API", 
+        Version = "v1",
+        Description = "API for managing auto parts store operations with Tap Payment Gateway"
+    });
 
-    // ≈⁄œ«œ «·‹ JWT Auth
+    // Add JWT Auth to Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -36,7 +50,7 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "«ﬂ » ﬂ·„… 'Bearer' »⁄œÂ« ›—«€ À„ «· Êﬂ‰. „À«·: Bearer 12345abcdef"
+        Description = "√œŒ· ﬂ·„… 'Bearer' „ »Ê⁄… »„”«›… À„ «· Êﬂ‰. „À«·: Bearer 12345abcdef"
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -54,9 +68,6 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
-
-
-
 
 // CORS
 builder.Services.AddCors(options =>
@@ -85,7 +96,7 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
         sqlOptions.CommandTimeout(configuration.GetValue<int?>("DatabaseSettings:CommandTimeout") ?? 30);
     });
 
-    // «· ›⁄Ì· ›ﬁÿ ›Ì Ê÷⁄ «· ÿÊÌ—
+    // Enable detailed errors only in development
     if (builder.Environment.IsDevelopment())
     {
         options.EnableDetailedErrors(
@@ -95,50 +106,48 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     }
 });
 
-//// Â–« «·ﬂÊœ „Œ’’ ·⁄„·Ì«  EF Core Tools („À· Migration)
-//if (args.Length > 0 && args[0].Contains("ef", StringComparison.OrdinalIgnoreCase))
-//{
-//    //  ﬂÊÌ‰ »”Ìÿ ·‹ DbContext ·⁄„·Ì«  «· ’„Ì„
-//    builder.Services.AddDbContext<AppDbContext>(options =>
-//        options.UseSqlServer("Server=LAPTOP-2AR5OF7M;Database=AutoPartsStoreDb;Trusted_Connection=true;TrustServerCertificate=true;MultipleActiveResultSets=true;"));
-//}
-
-
 // Repositories
 builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
+builder.Services.AddScoped<IPartCategoryRepository, PartCategoryRepository>();
+builder.Services.AddScoped<ICarPartRepository, CarPartRepository>();
+builder.Services.AddScoped<ICityRepository, CityRepository>();
+builder.Services.AddScoped<IDistrictRepository, DistrictRepository>();
+builder.Services.AddScoped<IAddressRepository, AddressRepository>();
+builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
+builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
+builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
+builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
+builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
+builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
+builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
+builder.Services.AddScoped<ICustomerFeedbackRepository, CustomerFeedbackRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IPaymentTransactionRepository, PaymentTransactionRepository>();
 
 // Services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IPartCategoryRepository, PartCategoryRepository>();
 builder.Services.AddScoped<IPartCategoryService, PartCategoryService>();
-builder.Services.AddScoped<ICarPartRepository, CarPartRepository>();
 builder.Services.AddScoped<ICarPartService, CarPartService>();
-builder.Services.AddScoped<ICityRepository, CityRepository>();
 builder.Services.AddScoped<ICityService, CityService>();
-builder.Services.AddScoped<IDistrictRepository, DistrictRepository>();
 builder.Services.AddScoped<IDistrictService, DistrictService>();
-builder.Services.AddScoped<IAddressRepository, AddressRepository>();
 builder.Services.AddScoped<IAddressService, AddressService>();
-builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
-builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
-builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
 builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
-builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
-builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
 builder.Services.AddScoped<IFavoriteService, FavoriteService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<ICustomerFeedbackRepository, CustomerFeedbackRepository>();
 builder.Services.AddScoped<ICustomerFeedbackService, CustomerFeedbackService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddRateLimiting(builder.Configuration);
 builder.Services.AddScoped<JwtTokenGenerator>();
+builder.Services.Configure<TapSettings>(
+    builder.Configuration.GetSection("TapSettings"));
+builder.Services.AddHttpClient<ITapService, TapService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
-
-
-// ﬁ—«¡… ≈⁄œ«œ«  JWT „‰ Configuration
+// Get JWT configuration
 var jwtKey = builder.Configuration["Jwt:Key"]
              ?? throw new InvalidOperationException("JWT Key is not configured.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AutoPartsStore.Api";
@@ -156,34 +165,26 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-
         ValidateIssuer = true,
         ValidIssuer = jwtIssuer,
-
         ValidateAudience = true,
         ValidAudience = jwtAudience,
-
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
         RequireExpirationTime = true
-
-
     };
-
 
     jwtOptions.Events = new JwtBearerEvents
     {
         OnChallenge = async context =>
         {
-            // „‰⁄ ≈—”«· "WWW-Authenticate: Bearer"
             context.HandleResponse();
 
-            //  ÂÌ∆… «·—œ «·„ÊÕœ
             var response = new ApiResponse
             {
                 Success = false,
                 Message = "€Ì— „’—Õ. Ì—ÃÏ  ”ÃÌ· «·œŒÊ·.",
-                Errors = new List<string> { "«·—Ã«¡  ÷„Ì‰  Êﬂ‰ ’«·Õ ›Ì —√” «·ÿ·» (Authorization: Bearer <token>)" }
+                Errors = new List<string> { "Ì ÿ·»  Ê›Ì—  Êﬂ‰ ’«·Õ ›Ì —√” «·ÿ·» (Authorization: Bearer <token>)" }
             };
 
             context.Response.ContentType = "application/json; charset=utf-8";
@@ -197,8 +198,8 @@ builder.Services.AddAuthentication(options =>
             var response = new ApiResponse
             {
                 Success = false,
-                Message = "›‘· «· Õﬁﬁ „‰ «·ÂÊÌ….",
-                Errors = new List<string> { "«· Êﬂ‰ €Ì— ’«·Õ √Ê „‰ ÂÌ «·’·«ÕÌ…." }
+                Message = "›‘· «· Õﬁﬁ „‰ «· Êﬂ‰.",
+                Errors = new List<string> { "«· Êﬂ‰ €Ì— ’«·Õ √Ê «‰ Â  ’·«ÕÌ Â." }
             };
 
             context.Response.ContentType = "application/json; charset=utf-8";
@@ -212,22 +213,35 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
-    c.DocExpansion(DocExpansion.None);
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoParts Store API V1");
+        c.DocExpansion(DocExpansion.None);
+    });
+}
+
+// Error handling middleware (MUST BE FIRST after dev exception page)
+app.UseErrorHandling();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+
+// Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Rate limiting
 app.UseRateLimiting();
 
-// ›Ì Program.cs° ﬁ»· app.MapControllers();
+// Admin check middleware
 app.UseAdminCheck();
-app.UseMiddleware<ExceptionMiddleware>();
+
+// Status code middleware (for additional status code handling)
 app.UseStatusCodeHandling();
 
 app.MapControllers();

@@ -1,0 +1,16 @@
+namespace AutoPartsStore.Core.Exceptions
+{
+    /// <summary>
+    /// Œÿ√ €Ì— „ Êﬁ⁄ ›Ì «· ÿ»Ìﬁ
+    /// </summary>
+    public class InternalServerException : AppException
+    {
+        public InternalServerException(
+            string message = "ÕœÀ Œÿ√ €Ì— „ Êﬁ⁄ ›Ì «·Œ«œ„. Ì—ÃÏ «·„Õ«Ê·… ·«Õﬁ«.",
+            string errorCode = "INTERNAL_SERVER_ERROR",
+            Exception? innerException = null)
+            : base(message, errorCode, null, innerException)
+        {
+        }
+    }
+}

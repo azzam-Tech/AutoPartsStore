@@ -235,10 +235,8 @@ namespace AutoPartsStore.Infrastructure.Data.Migrations
                     b.Property<int>("FeedbackType")
                         .HasColumnType("int");
 
-                    b.Property<bool>("IsFeatured")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                    b.Property<bool?>("IsFeatured")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Message")
                         .IsRequired()
@@ -450,10 +448,8 @@ namespace AutoPartsStore.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("IsApproved")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                    b.Property<bool?>("IsApproved")
+                        .HasColumnType("bit");
 
                     b.Property<int>("PartId")
                         .HasColumnType("int");

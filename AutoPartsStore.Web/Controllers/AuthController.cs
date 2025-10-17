@@ -16,40 +16,6 @@ public class AuthController : BaseController
         _authService = authService;
     }
 
-    //[HttpPost("register")]
-    //public async Task<IActionResult> Register([FromBody] RegisterRequest request)
-    //{
-    //    var result = await _authService.RegisterAsync(
-    //        request.Username,
-    //        request.Email,
-    //        request.FullName,
-    //        request.PhoneNumber,
-    //        request.Password);
-
-    //    if (!result.Success)
-    //        return BadRequest(result.Message);
-
-    //    return Success(result.Message);
-    //}
-
-    //[HttpPost("login")]
-    //public async Task<IActionResult> Login([FromBody] LoginRequest request)
-    //{
-
-
-    //    var tokenResult = await _authService.GenerateJwtTokenAsync(request.Username);
-    //    if (!tokenResult.Success)
-    //        return BadRequest(tokenResult.Message);
-
-    //    // إرجاع كائن موحد يحتوي على كل شيء
-    //    return Success(new
-    //    {
-    //        accessToken = tokenResult.AccessToken,
-    //        expiresAt = tokenResult.ExpiresAt,
-    //        userInfo = tokenResult.UserInfo
-    //    }, tokenResult.Message);
-    //}
-
     [HttpPost("send-code")]
     [EnableRateLimiting("SendCodeRateLimit")]
 

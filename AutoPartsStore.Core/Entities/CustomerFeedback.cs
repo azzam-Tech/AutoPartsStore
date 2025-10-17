@@ -15,7 +15,7 @@ namespace AutoPartsStore.Core.Entities
         [Range(1, 5)]
         public int Rate { get; private set; } // التقييم من 1 إلى 5 نجوم
 
-        public bool IsFeatured { get; private set; }
+        public bool? IsFeatured { get; private set; }
 
         public DateTime CreatedDate { get; private set; }
 
@@ -29,7 +29,7 @@ namespace AutoPartsStore.Core.Entities
             Message = message;
             Rate = rate;
             CreatedDate = DateTime.UtcNow;
-            IsFeatured = false;
+            IsFeatured = null;
 
             Validate();
         }
@@ -74,6 +74,10 @@ namespace AutoPartsStore.Core.Entities
         {
             IsFeatured = false;
         }
+        public void ClearFeature()
+        {
+            IsFeatured = null;
+        }
     }
 
     public enum FeedbackType
@@ -82,5 +86,13 @@ namespace AutoPartsStore.Core.Entities
         Suggestion = 1,   // اقتراح
         Inquiry = 2,      // استفسار
         Praise = 3        // مدح
+    }
+
+    public enum Feedbackstatus
+    {
+        IsApproved = 0,
+        IsNotApproved = 1,
+        IsPending = 2
+
     }
 }

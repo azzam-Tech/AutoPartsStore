@@ -31,9 +31,10 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.Property(pr => pr.ReviewDate)
                 .IsRequired();
 
+            // IsApproved is now nullable: null = Pending, true = Approved, false = Rejected
             builder.Property(pr => pr.IsApproved)
-                .IsRequired()
-                .HasDefaultValue(false);
+                .IsRequired(false)
+                .HasDefaultValue(null);
 
             builder.HasIndex(pr => new { pr.PartId, pr.UserId }).IsUnique();
         }

@@ -23,14 +23,14 @@ namespace AutoPartsStore.Infrastructure.Services
             _logger = logger;
         }
 
-        public async Task<List<ProductReviewDto>> GetReviewsAsync(bool? approvedOnly)
+        public async Task<List<ProductReviewDto>> GetReviewsAsync(ProductReviewstatus? productReviewstatus)
         {
-            return await _reviewRepository.GetReviewsAsync(approvedOnly);
+            return await _reviewRepository.GetReviewsAsync(productReviewstatus);
         }
 
-        public async Task<List<ProductReviewDto>> GetProductReviewsAsync(int partId, bool? approvedOnly = true)
+        public async Task<List<ProductReviewDto>> GetProductReviewsAsync(int partId, ProductReviewstatus? productReviewstatus)
         {
-            return await _reviewRepository.GetReviewsByPartIdAsync(partId, approvedOnly);
+            return await _reviewRepository.GetReviewsByPartIdAsync(partId, productReviewstatus);
         }
 
         public async Task<List<ProductReviewDto>> GetUserReviewsAsync(int userId)
@@ -122,21 +122,36 @@ namespace AutoPartsStore.Infrastructure.Services
             return true;
         }
 
-        public async Task<bool> ApproveReviewAsync(int reviewId, bool isApproved)
+        /// <summary>
+        /// Approve, reject, or set review to pending
+        /// </summary>
+        /// <param name="reviewId">Review ID</param>
+        /// <param name="isApproved">null = Pending, true = Approved, false = Rejected</param>
+        public async Task<bool> ApproveReviewAsync(int reviewId, bool? isApproved)
         {
             var review = await _context.ProductReviews.FindAsync(reviewId);
             if (review == null)
                 throw new KeyNotFoundException("Review not found");
 
-            if (isApproved)
+            if (isApproved == true)
+            {
                 review.Approve();
-            else
+                _logger.LogInformation("Review {ReviewId} approved", reviewId);
+            }
+            else if (isApproved == false)
+            {
                 review.Reject();
+                _logger.LogInformation("Review {ReviewId} rejected", reviewId);
+            }
+            else
+            {
+                review.SetPending();
+                _logger.LogInformation("Review {ReviewId} set to pending", reviewId);
+            }
 
             _context.ProductReviews.Update(review);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Review {ReviewId} {Status}", reviewId, isApproved ? "approved" : "rejected");
             return true;
         }
 
@@ -144,6 +159,5 @@ namespace AutoPartsStore.Infrastructure.Services
         {
             return await _reviewRepository.GetReviewSummaryAsync(partId);
         }
-
     }
 }

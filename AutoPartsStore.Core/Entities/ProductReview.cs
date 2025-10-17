@@ -1,6 +1,6 @@
 ﻿namespace AutoPartsStore.Core.Entities
 {
-    public class ProductReview 
+    public class ProductReview
     {
         public int Id { get; private set; }
         public int PartId { get; private set; }
@@ -8,7 +8,7 @@
         public int Rating { get; private set; } // 1-5
         public string? ReviewText { get; private set; }
         public DateTime ReviewDate { get; private set; }
-        public bool IsApproved { get; private set; }
+        public bool? IsApproved { get; private set; } // null = Pending, true = Approved, false = Rejected
 
         // Navigation
         public CarPart CarPart { get; private set; } = null!;
@@ -21,7 +21,7 @@
             Rating = rating;
             ReviewText = reviewText;
             ReviewDate = DateTime.UtcNow;
-            IsApproved = false;
+            IsApproved = null; // Default to pending
 
             Validate();
         }
@@ -34,5 +34,23 @@
 
         public void Approve() => IsApproved = true;
         public void Reject() => IsApproved = false;
+        public void SetPending() => IsApproved = null;
+        
+        public string GetApprovalStatus()
+        {
+            return IsApproved switch
+            {
+                true => "Approved",
+                false => "Rejected",
+                null => "Pending"
+            };
+        }
+    }
+
+    public enum ProductReviewstatus
+    {
+        IsApproved = 0,
+        IsNotApproved = 1,
+        IsPending = 2
     }
 }

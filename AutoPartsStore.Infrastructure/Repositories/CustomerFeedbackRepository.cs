@@ -22,6 +22,16 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 if (filter.FeedbackType.HasValue)
                     query = query.Where(cf => cf.FeedbackType == filter.FeedbackType.Value);
 
+                if (filter.Feedbackstatus.HasValue)
+                {
+                    if (filter.Feedbackstatus.Value == Feedbackstatus.IsApproved)
+                        query = query.Where(cf => cf.IsFeatured == true);
+                    else if (filter.Feedbackstatus.Value == Feedbackstatus.IsNotApproved)
+                        query = query.Where(cf => cf.IsFeatured == false);
+                    else if (filter.Feedbackstatus.Value == Feedbackstatus.IsPending)
+                        query = query.Where(cf => cf.IsFeatured == null);
+                }
+
                 if (filter.MinRate.HasValue)
                     query = query.Where(cf => cf.Rate >= filter.MinRate.Value);
 
@@ -54,7 +64,8 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     Rate = cf.Rate,
                     RateStars = new string('★', cf.Rate) + new string('☆', 5 - cf.Rate),
                     CreatedDate = cf.CreatedDate,
-                    TimeAgo = GetTimeAgo(cf.CreatedDate)
+                    TimeAgo = GetTimeAgo(cf.CreatedDate),
+                    IsFeatured = cf.IsFeatured
                 })
                 .ToListAsync();
         }
@@ -63,7 +74,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.CustomerFeedbacks
                 .Where(cf => cf.Id == id)
-                .Include(cf => cf.User)
                 .Select(cf => new CustomerFeedbackDto
                 {
                     Id = cf.Id,
@@ -76,7 +86,8 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     Rate = cf.Rate,
                     RateStars = new string('★', cf.Rate) + new string('☆', 5 - cf.Rate),
                     CreatedDate = cf.CreatedDate,
-                    TimeAgo = GetTimeAgo(cf.CreatedDate)
+                    TimeAgo = GetTimeAgo(cf.CreatedDate),
+                    IsFeatured = cf.IsFeatured
                 })
                 .FirstOrDefaultAsync();
         }
@@ -85,7 +96,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         {
             return await _context.CustomerFeedbacks
                 .Where(cf => cf.UserId == userId)
-                .Include(cf => cf.User)
                 .OrderByDescending(cf => cf.CreatedDate)
                 .Select(cf => new CustomerFeedbackDto
                 {
@@ -99,7 +109,8 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     Rate = cf.Rate,
                     RateStars = new string('★', cf.Rate) + new string('☆', 5 - cf.Rate),
                     CreatedDate = cf.CreatedDate,
-                    TimeAgo = GetTimeAgo(cf.CreatedDate)
+                    TimeAgo = GetTimeAgo(cf.CreatedDate),
+                    IsFeatured = cf.IsFeatured
                 })
                 .ToListAsync();
         }
@@ -141,7 +152,6 @@ namespace AutoPartsStore.Infrastructure.Repositories
         public async Task<List<CustomerFeedbackDto>> GetRecentFeedbacksAsync(int count = 10)
         {
             return await _context.CustomerFeedbacks
-                .Include(cf => cf.User)
                 .OrderByDescending(cf => cf.CreatedDate)
                 .Take(count)
                 .Select(cf => new CustomerFeedbackDto
@@ -156,7 +166,8 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     Rate = cf.Rate,
                     RateStars = new string('★', cf.Rate) + new string('☆', 5 - cf.Rate),
                     CreatedDate = cf.CreatedDate,
-                    TimeAgo = GetTimeAgo(cf.CreatedDate)
+                    TimeAgo = GetTimeAgo(cf.CreatedDate),
+                    IsFeatured = cf.IsFeatured
                 })
                 .ToListAsync();
         }
@@ -176,8 +187,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
         public async Task<List<CustomerFeedbackDto>> GetFeaturedFeedbacksAsync()
         {
             return await _context.CustomerFeedbacks
-                .Where(cf => cf.IsFeatured)
-                .Include(cf => cf.User)
+                .Where(cf => cf.IsFeatured == true)
                 .OrderByDescending(cf => cf.CreatedDate)
                 .Select(cf => new CustomerFeedbackDto
                 {

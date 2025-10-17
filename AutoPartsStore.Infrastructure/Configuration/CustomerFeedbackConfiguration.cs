@@ -32,8 +32,8 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .HasDefaultValueSql("GETDATE()");
 
             builder.Property(cf => cf.IsFeatured)
-                .IsRequired()
-                .HasDefaultValue(false);
+                .IsRequired(false)
+                .HasDefaultValue(null);
 
             // Relationships
             builder.HasOne(cf => cf.User)
