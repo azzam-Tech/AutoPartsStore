@@ -373,12 +373,17 @@ namespace AutoPartsStore.Infrastructure.Services
                     source.Name = request.CardHolderName;
                     source.Month = request.ExpiryMonth;
                     source.Year = request.ExpiryYear;
-                    source.Cvc = request.CVV;
+                    source.Cvc = request.CVC;  // ? Changed from CVV to CVC
                     break;
 
                 case PaymentMethod.ApplePay:
                     source.Type = MoyasarSourceType.ApplePay;
-                    // Token would be provided by Apple Pay SDK
+                    source.Token = request.ApplePayToken;  // ? NEW: Use Apple Pay token
+                    
+                    if (string.IsNullOrEmpty(request.ApplePayToken))
+                    {
+                        throw new ValidationException("Apple Pay token is required for Apple Pay payments.");
+                    }
                     break;
 
                 case PaymentMethod.STCPay:
@@ -396,7 +401,7 @@ namespace AutoPartsStore.Infrastructure.Services
                     break;
 
                 default:
-                    throw new ValidationException("ÿ—Ìﬁ… «·œ›⁄ €Ì— „œ⁄Ê„….");
+                    throw new ValidationException("ÿ—Ìﬁ… «·œ›⁄ €Ì— ’ÕÌÕ….");
             }
 
             return source;

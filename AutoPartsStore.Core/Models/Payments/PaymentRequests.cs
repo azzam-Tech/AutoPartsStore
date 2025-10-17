@@ -16,7 +16,10 @@ namespace AutoPartsStore.Core.Models.Payments
         public string? CardHolderName { get; set; }
         public string? ExpiryMonth { get; set; }
         public string? ExpiryYear { get; set; }
-        public string? CVV { get; set; }
+        public string? CVC { get; set; }  // Changed from CVV to CVC for consistency
+        
+        // For Apple Pay
+        public string? ApplePayToken { get; set; }  // ? NEW: Token from Apple Pay SDK
         
         // Callback URL for Moyasar
         public string? CallbackUrl { get; set; }
