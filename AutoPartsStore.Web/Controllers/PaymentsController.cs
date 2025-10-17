@@ -22,7 +22,7 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         /// <summary>
-        /// Initiate payment for an order
+        /// Initiate payment for an order using Tap Payment Gateway
         /// </summary>
         [HttpPost("initiate")]
         [Authorize]
@@ -30,56 +30,57 @@ namespace AutoPartsStore.Web.Controllers
         {
             _logger.LogInformation("Initiating payment for order {OrderId}", request.OrderId);
 
-            var moyasarResponse = await _paymentService.InitiatePaymentAsync(request);
+            var tapResponse = await _paymentService.InitiatePaymentAsync(request);
 
             return Success(new
             {
-                paymentId = moyasarResponse.Id,
-                status = moyasarResponse.Status,
-                amount = moyasarResponse.Amount / 100.0m, // Convert from halalas to SAR
-                currency = moyasarResponse.Currency,
-                transactionUrl = moyasarResponse.Source?.TransactionUrl
+                chargeId = tapResponse.Id,
+                status = tapResponse.Status,
+                amount = tapResponse.Amount,
+                currency = tapResponse.Currency,
+                redirectUrl = tapResponse.Transaction?.Url,  // URL for 3D Secure
+                transactionUrl = tapResponse.Transaction?.Url
             }, " „ »œ¡ ⁄„·Ì… «·œ›⁄ »‰Ã«Õ.");
         }
 
         /// <summary>
-        /// Moyasar payment callback webhook
-        /// This endpoint receives notifications from Moyasar when payment status changes
+        /// Tap payment webhook endpoint
+        /// This endpoint receives notifications from Tap when payment status changes
         /// </summary>
-        [HttpPost("callback")]
-        [AllowAnonymous] // Moyasar needs to access this without authentication
-        public async Task<IActionResult> PaymentCallback([FromBody] ProcessPaymentCallbackRequest request)
+        [HttpPost("webhook")]
+        [AllowAnonymous] // Tap needs to access this without authentication
+        public async Task<IActionResult> PaymentWebhook([FromBody] ProcessPaymentWebhookRequest request)
         {
-            _logger.LogInformation("Received payment callback for payment {PaymentId}", request.PaymentId);
+            _logger.LogInformation("Received payment webhook for charge {ChargeId}", request.ChargeId);
 
             try
             {
-                var payment = await _paymentService.ProcessPaymentCallbackAsync(request.PaymentId);
+                var payment = await _paymentService.ProcessPaymentWebhookAsync(request.ChargeId);
                 
-                return Success(payment, " „ „⁄«·Ã… ‰ ÌÃ… «·œ›⁄ »‰Ã«Õ.");
+                return Success(payment, " „ „⁄«·Ã… ≈‘⁄«— «·œ›⁄ »‰Ã«Õ.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing payment callback for {PaymentId}", request.PaymentId);
+                _logger.LogError(ex, "Error processing payment webhook for {ChargeId}", request.ChargeId);
                 
-                // Return 200 OK even on error to prevent Moyasar from retrying
+                // Return 200 OK even on error to prevent Tap from retrying
                 return Ok(new
                 {
                     success = false,
-                    message = " „ «” ·«„ «·ÿ·» Ê·ﬂ‰ ÕœÀ Œÿ√ ›Ì «·„⁄«·Ã….",
+                    message = " „ «” ·«„ «·≈‘⁄«— ·ﬂ‰ ÕœÀ Œÿ√ ›Ì «·„⁄«·Ã….",
                     error = ex.Message
                 });
             }
         }
 
         /// <summary>
-        /// Verify payment status with Moyasar
+        /// Verify payment status with Tap
         /// </summary>
-        [HttpPost("verify/{paymentId}")]
+        [HttpPost("verify/{chargeId}")]
         [Authorize]
-        public async Task<IActionResult> VerifyPayment(string paymentId)
+        public async Task<IActionResult> VerifyPayment(string chargeId)
         {
-            var payment = await _paymentService.VerifyPaymentAsync(paymentId);
+            var payment = await _paymentService.VerifyPaymentAsync(chargeId);
             return Success(payment, " „ «· Õﬁﬁ „‰ Õ«·… «·œ›⁄.");
         }
 
@@ -113,7 +114,7 @@ namespace AutoPartsStore.Web.Controllers
         {
             var payment = await _paymentService.GetPaymentByOrderIdAsync(orderId);
             if (payment == null)
-                return NotFound("·„ Ì „ «·⁄ÀÊ— ⁄·Ï „⁄«„·… œ›⁄ ·Â–« «·ÿ·».");
+                return NotFound("·„ Ì „ «·⁄ÀÊ— ⁄·Ï ⁄„·Ì… œ›⁄ ·Â–« «·ÿ·».");
 
             var userId = GetAuthenticatedUserId();
             var isAdmin = User.IsInRole("Admin");
@@ -176,7 +177,7 @@ namespace AutoPartsStore.Web.Controllers
                 id, request.Amount);
 
             var payment = await _paymentService.RefundPaymentAsync(id, request);
-            return Success(payment, " „ «” —œ«œ «·„»·€ »‰Ã«Õ.");
+            return Success(payment, " „ «” —œ«œ «·œ›⁄… »‰Ã«Õ.");
         }
 
         /// <summary>
@@ -226,7 +227,7 @@ namespace AutoPartsStore.Web.Controllers
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userIdClaim == null)
-                throw new UnauthorizedAccessException("„⁄—¯› «·„” Œœ„ €Ì— „ÊÃÊœ.");
+                throw new UnauthorizedAccessException("„⁄—› «·„” Œœ„ €Ì— „ÊÃÊœ.");
             return int.Parse(userIdClaim);
         }
     }

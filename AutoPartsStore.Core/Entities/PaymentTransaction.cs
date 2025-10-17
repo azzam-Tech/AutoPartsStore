@@ -1,19 +1,22 @@
 namespace AutoPartsStore.Core.Entities
 {
     /// <summary>
-    /// Payment status enum matching Moyasar payment statuses
+    /// Payment status enum matching Tap payment statuses
     /// </summary>
     public enum PaymentStatus
     {
         Initiated = 0,      // Payment created but not processed
-        Pending = 1,        // Payment processing
-        Paid = 2,           // Payment successful
+        Pending = 1,        // Payment processing (IN_PROGRESS)
+        Paid = 2,           // Payment successful (CAPTURED)
         Failed = 3,         // Payment failed
         Authorized = 4,     // Payment authorized but not captured
-        Captured = 5,       // Payment captured
+        Captured = 5,       // Payment captured (same as Paid)
         Refunded = 6,       // Full refund
         PartiallyRefunded = 7,  // Partial refund
-        Voided = 8          // Payment voided
+        Voided = 8,         // Payment voided
+        Declined = 9,       // Payment declined by bank
+        Abandoned = 10,     // Payment abandoned by user
+        Cancelled = 11      // Payment cancelled
     }
 
     /// <summary>
@@ -21,16 +24,17 @@ namespace AutoPartsStore.Core.Entities
     /// </summary>
     public enum PaymentMethod
     {
-        CreditCard = 0,     // Visa/MasterCard
-        Mada = 1,           // Saudi Mada cards
-        ApplePay = 2,
-        STCPay = 3,
-        Tabby = 4,          // Buy now, pay later
-        Tamara = 5          // Buy now, pay later
+        Visa = 0,           // Visa cards
+        MasterCard = 1,     // MasterCard
+        Mada = 2,           // Saudi Mada cards
+        ApplePay = 3,       // Apple Pay
+        Tabby = 4,          // Tabby (Buy now, pay later)
+        Tamara = 5,         // Tamara (Buy now, pay later) - Not in initial scope
+        STCPay = 6          // STC Pay - Not in initial scope
     }
 
     /// <summary>
-    /// Payment transaction entity
+    /// Payment transaction entity - Updated for Tap
     /// </summary>
     public class PaymentTransaction
     {
@@ -38,8 +42,8 @@ namespace AutoPartsStore.Core.Entities
         public int OrderId { get; private set; }
         public int UserId { get; private set; }
         
-        // Moyasar payment details
-        public string? MoyasarPaymentId { get; private set; }   // Moyasar's payment ID
+        // Tap payment details
+        public string? TapChargeId { get; private set; }     // Tap's charge ID (chg_xxx)
         public string TransactionReference { get; private set; } // Our reference
         
         // Payment information
@@ -57,12 +61,13 @@ namespace AutoPartsStore.Core.Entities
         // Card information (last 4 digits only for security)
         public string? CardLast4 { get; private set; }
         public string? CardBrand { get; private set; }          // Visa, MasterCard, Mada
+        public string? CardScheme { get; private set; }         // Card scheme
         
         // Refund information
         public decimal? RefundedAmount { get; private set; }
         public DateTime? RefundedDate { get; private set; }
         public string? RefundReason { get; private set; }
-        public string? RefundReference { get; private set; }    // Moyasar refund ID
+        public string? RefundReference { get; private set; }    // Tap refund ID
         
         // Timestamps
         public DateTime InitiatedDate { get; private set; }
@@ -83,13 +88,13 @@ namespace AutoPartsStore.Core.Entities
             int userId,
             decimal amount,
             PaymentMethod paymentMethod,
-            string? moyasarPaymentId = null)
+            string? tapChargeId = null)
         {
             OrderId = orderId;
             UserId = userId;
             Amount = amount;
             PaymentMethod = paymentMethod;
-            MoyasarPaymentId = moyasarPaymentId;
+            TapChargeId = tapChargeId;
             
             TransactionReference = GenerateTransactionReference();
             Status = PaymentStatus.Initiated;
@@ -123,6 +128,7 @@ namespace AutoPartsStore.Core.Entities
                     CompletedDate = DateTime.UtcNow;
                     break;
                 case PaymentStatus.Failed:
+                case PaymentStatus.Declined:
                     FailedDate = DateTime.UtcNow;
                     break;
             }
@@ -137,10 +143,11 @@ namespace AutoPartsStore.Core.Entities
             UpdatedAt = DateTime.UtcNow;
         }
 
-        public void UpdateCardDetails(string last4, string brand)
+        public void UpdateCardDetails(string last4, string brand, string? scheme = null)
         {
             CardLast4 = last4;
             CardBrand = brand;
+            CardScheme = scheme;
             UpdatedAt = DateTime.UtcNow;
         }
 
@@ -168,9 +175,9 @@ namespace AutoPartsStore.Core.Entities
             UpdatedAt = DateTime.UtcNow;
         }
 
-        public void UpdateMoyasarPaymentId(string moyasarPaymentId)
+        public void UpdateTapChargeId(string tapChargeId)
         {
-            MoyasarPaymentId = moyasarPaymentId;
+            TapChargeId = tapChargeId;
             UpdatedAt = DateTime.UtcNow;
         }
 

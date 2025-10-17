@@ -3,11 +3,13 @@ using AutoPartsStore.Core.Exceptions;
 using AutoPartsStore.Core.Interfaces.IRepositories;
 using AutoPartsStore.Core.Interfaces.IServices;
 using AutoPartsStore.Core.Models;
+using AutoPartsStore.Core.Models.Orders;  // Add this using for OrderDto
 using AutoPartsStore.Core.Models.Payments;
-using AutoPartsStore.Core.Models.Payments.Moyasar;
+using AutoPartsStore.Core.Models.Payments.Tap;
 using AutoPartsStore.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 namespace AutoPartsStore.Infrastructure.Services
@@ -16,7 +18,8 @@ namespace AutoPartsStore.Infrastructure.Services
     {
         private readonly IPaymentTransactionRepository _paymentRepository;
         private readonly IOrderRepository _orderRepository;
-        private readonly IMoyasarService _moyasarService;
+        private readonly ITapService _tapService;
+        private readonly TapSettings _tapSettings;
         private readonly IOrderService _orderService;
         private readonly AppDbContext _context;
         private readonly ILogger<PaymentService> _logger;
@@ -24,20 +27,22 @@ namespace AutoPartsStore.Infrastructure.Services
         public PaymentService(
             IPaymentTransactionRepository paymentRepository,
             IOrderRepository orderRepository,
-            IMoyasarService moyasarService,
+            ITapService tapService,
+            IOptions<TapSettings> tapSettings,
             IOrderService orderService,
             AppDbContext context,
             ILogger<PaymentService> logger)
         {
             _paymentRepository = paymentRepository;
             _orderRepository = orderRepository;
-            _moyasarService = moyasarService;
+            _tapService = tapService;
+            _tapSettings = tapSettings.Value;
             _orderService = orderService;
             _context = context;
             _logger = logger;
         }
 
-        public async Task<MoyasarPaymentResponse> InitiatePaymentAsync(InitiatePaymentRequest request)
+        public async Task<TapChargeResponse> InitiatePaymentAsync(InitiatePaymentRequest request)
         {
             _logger.LogInformation("Initiating payment for order {OrderId}", request.OrderId);
 
@@ -53,7 +58,7 @@ namespace AutoPartsStore.Infrastructure.Services
             if (existingPayment != null && 
                 (existingPayment.Status == PaymentStatus.Paid || existingPayment.Status == PaymentStatus.Captured))
             {
-                throw new BusinessException(" „ œ›⁄ ﬁÌ„… Â–« «·ÿ·» „”»ﬁ«.");
+                throw new BusinessException(" „ «·œ›⁄ ·Â–« «·ÿ·» »«·›⁄·.");
             }
 
             // Create payment transaction
@@ -76,55 +81,41 @@ namespace AutoPartsStore.Infrastructure.Services
                 await _context.SaveChangesAsync();
             }
 
-            // Prepare Moyasar payment request
-            var moyasarRequest = new MoyasarCreatePaymentRequest
-            {
-                Amount = orderDto.TotalAmount,
-                Currency = "SAR",
-                Description = $"ÿ·» —ﬁ„ {orderDto.OrderNumber}",
-                Source = MapPaymentMethodToSource(request),
-                CallbackUrl = request.CallbackUrl,
-                Metadata = new Dictionary<string, string>
-                {
-                    ["order_id"] = request.OrderId.ToString(),
-                    ["order_number"] = orderDto.OrderNumber,
-                    ["transaction_reference"] = paymentTransaction.TransactionReference,
-                    ["user_id"] = orderDto.UserId.ToString()
-                }
-            };
+            // Prepare Tap charge request
+            var tapRequest = BuildTapChargeRequest(request, orderDto, paymentTransaction);
 
             try
             {
-                // Call Moyasar API
-                var moyasarResponse = await _moyasarService.CreatePaymentAsync(moyasarRequest);
+                // Call Tap API
+                var tapResponse = await _tapService.CreateChargeAsync(tapRequest);
 
-                // Update payment transaction with Moyasar payment ID
-                paymentTransaction.UpdateMoyasarPaymentId(moyasarResponse.Id);
+                // Update payment transaction with Tap charge ID
+                paymentTransaction.UpdateTapChargeId(tapResponse.Id);
                 
                 // Store gateway response
                 paymentTransaction.UpdateStatus(
-                    MapMoyasarStatusToPaymentStatus(moyasarResponse.Status),
-                    JsonSerializer.Serialize(moyasarResponse),
-                    moyasarResponse.Source?.ReferenceNumber
+                    MapTapStatusToPaymentStatus(tapResponse.Status),
+                    JsonSerializer.Serialize(tapResponse),
+                    tapResponse.Reference?.Transaction
                 );
 
                 // Update card details if available
-                if (moyasarResponse.Source?.Number != null)
+                if (tapResponse.Card != null)
                 {
-                    var last4 = moyasarResponse.Source.Number.Length >= 4
-                        ? moyasarResponse.Source.Number.Substring(moyasarResponse.Source.Number.Length - 4)
-                        : moyasarResponse.Source.Number;
-                    
-                    paymentTransaction.UpdateCardDetails(last4, moyasarResponse.Source.Company ?? "Unknown");
+                    paymentTransaction.UpdateCardDetails(
+                        tapResponse.Card.LastFour ?? "",
+                        tapResponse.Card.Brand ?? "",
+                        tapResponse.Card.Scheme
+                    );
                 }
 
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation(
-                    "Payment initiated successfully. Moyasar PaymentId: {MoyasarPaymentId}, TransactionRef: {TransactionRef}",
-                    moyasarResponse.Id, paymentTransaction.TransactionReference);
+                    "Payment initiated successfully. Tap ChargeId: {ChargeId}, TransactionRef: {TransactionRef}",
+                    tapResponse.Id, paymentTransaction.TransactionReference);
 
-                return moyasarResponse;
+                return tapResponse;
             }
             catch (Exception ex)
             {
@@ -145,21 +136,21 @@ namespace AutoPartsStore.Infrastructure.Services
             }
         }
 
-        public async Task<PaymentTransactionDto> ProcessPaymentCallbackAsync(string paymentId)
+        public async Task<PaymentTransactionDto> ProcessPaymentWebhookAsync(string chargeId)
         {
-            _logger.LogInformation("Processing payment callback for Moyasar payment {PaymentId}", paymentId);
+            _logger.LogInformation("Processing payment webhook for Tap charge {ChargeId}", chargeId);
 
-            // Fetch payment from Moyasar
-            var moyasarPayment = await _moyasarService.GetPaymentAsync(paymentId);
+            // Fetch payment from Tap
+            var tapCharge = await _tapService.GetChargeAsync(chargeId);
 
             // Find our payment transaction
-            var paymentDto = await _paymentRepository.GetByMoyasarPaymentIdAsync(paymentId);
+            var paymentDto = await _paymentRepository.GetByTapChargeIdAsync(chargeId);
             if (paymentDto == null)
             {
                 throw new NotFoundException(
                     "·„ Ì „ «·⁄ÀÊ— ⁄·Ï „⁄«„·… «·œ›⁄.",
                     "PaymentTransaction",
-                    paymentId);
+                    chargeId);
             }
 
             var payment = await _context.PaymentTransactions.FindAsync(paymentDto.Id);
@@ -177,17 +168,17 @@ namespace AutoPartsStore.Infrastructure.Services
                 throw new NotFoundException("«·ÿ·» €Ì— „ÊÃÊœ.");
             }
 
-            var newStatus = MapMoyasarStatusToPaymentStatus(moyasarPayment.Status);
+            var newStatus = MapTapStatusToPaymentStatus(tapCharge.Status);
 
             _logger.LogInformation(
-                "Payment callback: Order {OrderNumber}, Status: {Status}",
-                order.OrderNumber, moyasarPayment.Status);
+                "Payment webhook: Order {OrderNumber}, Status: {Status}",
+                order.OrderNumber, tapCharge.Status);
 
             // Update payment transaction
             payment.UpdateStatus(
                 newStatus,
-                JsonSerializer.Serialize(moyasarPayment),
-                moyasarPayment.Source?.ReferenceNumber
+                JsonSerializer.Serialize(tapCharge),
+                tapCharge.Reference?.Transaction
             );
 
             // Handle different payment statuses
@@ -199,7 +190,8 @@ namespace AutoPartsStore.Infrastructure.Services
                     break;
 
                 case PaymentStatus.Failed:
-                    await HandleFailedPayment(order, payment, moyasarPayment.Source?.Message);
+                case PaymentStatus.Declined:
+                    await HandleFailedPayment(order, payment, tapCharge.Response?.Message);
                     break;
 
                 case PaymentStatus.Authorized:
@@ -212,13 +204,13 @@ namespace AutoPartsStore.Infrastructure.Services
             return (await _paymentRepository.GetByIdWithDetailsAsync(payment.Id))!;
         }
 
-        public async Task<PaymentTransactionDto> VerifyPaymentAsync(string paymentId)
+        public async Task<PaymentTransactionDto> VerifyPaymentAsync(string chargeId)
         {
-            _logger.LogInformation("Verifying payment {PaymentId}", paymentId);
+            _logger.LogInformation("Verifying payment {ChargeId}", chargeId);
 
-            var moyasarPayment = await _moyasarService.GetPaymentAsync(paymentId);
+            var tapCharge = await _tapService.GetChargeAsync(chargeId);
             
-            var paymentDto = await _paymentRepository.GetByMoyasarPaymentIdAsync(paymentId);
+            var paymentDto = await _paymentRepository.GetByTapChargeIdAsync(chargeId);
             if (paymentDto == null)
             {
                 throw new NotFoundException("„⁄«„·… «·œ›⁄ €Ì— „ÊÃÊœ….");
@@ -230,7 +222,7 @@ namespace AutoPartsStore.Infrastructure.Services
                 throw new NotFoundException("„⁄«„·… «·œ›⁄ €Ì— „ÊÃÊœ….");
             }
 
-            var currentStatus = MapMoyasarStatusToPaymentStatus(moyasarPayment.Status);
+            var currentStatus = MapTapStatusToPaymentStatus(tapCharge.Status);
             
             if (payment.Status != currentStatus)
             {
@@ -240,8 +232,8 @@ namespace AutoPartsStore.Infrastructure.Services
 
                 payment.UpdateStatus(
                     currentStatus,
-                    JsonSerializer.Serialize(moyasarPayment),
-                    moyasarPayment.Source?.ReferenceNumber
+                    JsonSerializer.Serialize(tapCharge),
+                    tapCharge.Reference?.Transaction
                 );
 
                 await _context.SaveChangesAsync();
@@ -289,29 +281,31 @@ namespace AutoPartsStore.Infrastructure.Services
 
             if (!payment.CanBeRefunded())
             {
-                throw new BusinessException("·« Ì„ﬂ‰ «” —œ«œ ﬁÌ„… Â–Â «·„⁄«„·….");
+                throw new BusinessException("·« Ì„ﬂ‰ «” —œ«œ Â–Â «·œ›⁄….");
             }
 
-            if (string.IsNullOrEmpty(payment.MoyasarPaymentId))
+            if (string.IsNullOrEmpty(payment.TapChargeId))
             {
-                throw new BusinessException("„⁄—¯› «·œ›⁄ ›Ì Moyasar €Ì— „ÊÃÊœ.");
+                throw new BusinessException("„⁄—› «·œ›⁄… ›Ì Tap €Ì— „ÊÃÊœ.");
             }
 
-            // Call Moyasar refund API
-            var refundRequest = new MoyasarRefundRequest
+            // Call Tap refund API
+            var refundRequest = new TapRefundRequest
             {
-                Amount = (int)(request.Amount * 100) // Convert to halalas
+                ChargeId = payment.TapChargeId,
+                Amount = request.Amount,
+                Currency = "SAR",
+                Reason = request.Reason,
+                Description = $"Refund for order {paymentDto.OrderNumber}"
             };
 
-            var moyasarResponse = await _moyasarService.RefundPaymentAsync(
-                payment.MoyasarPaymentId,
-                refundRequest);
+            var tapResponse = await _tapService.RefundChargeAsync(refundRequest);
 
             // Update payment transaction
             payment.ProcessRefund(
                 request.Amount,
                 request.Reason,
-                moyasarResponse.Id);
+                tapResponse.Id);
 
             // Update order status
             var order = await _context.Orders.FindAsync(payment.OrderId);
@@ -354,72 +348,146 @@ namespace AutoPartsStore.Infrastructure.Services
             _logger.LogWarning("Payment failed for order {OrderNumber}. Reason: {Reason}",
                 order.OrderNumber, errorMessage);
 
-            payment.MarkAsFailed(errorMessage ?? "Payment failed", "MOYASAR_PAYMENT_FAILED");
+            payment.MarkAsFailed(errorMessage ?? "Payment failed", "TAP_PAYMENT_FAILED");
             order.UpdateStatus(OrderStatus.Failed);
 
             await Task.CompletedTask;
         }
 
-        private MoyasarSource MapPaymentMethodToSource(InitiatePaymentRequest request)
+        private TapCreateChargeRequest BuildTapChargeRequest(
+            InitiatePaymentRequest request,
+            OrderDto orderDto,
+            PaymentTransaction paymentTransaction)
         {
-            var source = new MoyasarSource();
+            // Split name for Tap
+            var nameParts = SplitName(request.FirstName + " " + request.LastName);
+
+            var tapRequest = new TapCreateChargeRequest
+            {
+                Amount = orderDto.TotalAmount,
+                Currency = "SAR",
+                ThreeDSecure = _tapSettings.Enable3DSecure,
+                SaveCard = _tapSettings.SaveCards,
+                Description = $"ÿ·» —ﬁ„ {orderDto.OrderNumber}",
+                StatementDescriptor = _tapSettings.StatementDescriptor,
+                Metadata = new TapMetadata
+                {
+                    OrderId = request.OrderId.ToString(),
+                    OrderNumber = orderDto.OrderNumber,
+                    UserId = orderDto.UserId.ToString(),
+                    TransactionReference = paymentTransaction.TransactionReference
+                },
+                Reference = new TapReference
+                {
+                    Transaction = paymentTransaction.TransactionReference,
+                    Order = orderDto.OrderNumber
+                },
+                Customer = new TapCustomer
+                {
+                    FirstName = nameParts.firstName,
+                    LastName = nameParts.lastName,
+                    Email = request.Email,
+                    Phone = new TapPhone
+                    {
+                        CountryCode = "966",
+                        Number = CleanPhoneNumber(request.PhoneNumber)
+                    }
+                },
+                Source = MapPaymentMethodToSource(request),
+                Redirect = new TapRedirect
+                {
+                    Url = request.RedirectUrl ?? _tapSettings.RedirectUrl
+                },
+                Post = new TapPost
+                {
+                    Url = request.WebhookUrl ?? _tapSettings.WebhookUrl
+                }
+            };
+
+            return tapRequest;
+        }
+
+        private TapSource MapPaymentMethodToSource(InitiatePaymentRequest request)
+        {
+            var source = new TapSource();
 
             switch (request.PaymentMethod)
             {
-                case PaymentMethod.CreditCard:
+                case PaymentMethod.Visa:
+                case PaymentMethod.MasterCard:
                 case PaymentMethod.Mada:
-                    source.Type = MoyasarSourceType.CreditCard;
-                    source.Number = request.CardNumber;
-                    source.Name = request.CardHolderName;
-                    source.Month = request.ExpiryMonth;
-                    source.Year = request.ExpiryYear;
-                    source.Cvc = request.CVC;  // ? Changed from CVV to CVC
+                    // For cards, use the token from Tap.js
+                    if (string.IsNullOrEmpty(request.TapToken))
+                    {
+                        throw new ValidationException("Tap token is required for card payments.");
+                    }
+                    source.Id = request.TapToken;  // Token from Tap.js (tok_xxxx)
                     break;
 
                 case PaymentMethod.ApplePay:
-                    source.Type = MoyasarSourceType.ApplePay;
-                    source.Token = request.ApplePayToken;  // ? NEW: Use Apple Pay token
-                    
+                    // For Apple Pay, use the token from Apple Pay SDK
                     if (string.IsNullOrEmpty(request.ApplePayToken))
                     {
                         throw new ValidationException("Apple Pay token is required for Apple Pay payments.");
                     }
-                    break;
-
-                case PaymentMethod.STCPay:
-                    source.Type = MoyasarSourceType.STCPay;
+                    source.Id = request.ApplePayToken;
                     break;
 
                 case PaymentMethod.Tabby:
-                    source.Type = MoyasarSourceType.Tabby;
-                    source.Company = "tabby";
-                    break;
-
-                case PaymentMethod.Tamara:
-                    source.Type = MoyasarSourceType.Tamara;
-                    source.Company = "tamara";
+                    // For Tabby, use the specific source ID
+                    source.Id = TapSourceType.Tabby;
                     break;
 
                 default:
-                    throw new ValidationException("ÿ—Ìﬁ… «·œ›⁄ €Ì— ’ÕÌÕ….");
+                    throw new ValidationException("ÿ—Ìﬁ… «·œ›⁄ €Ì— „œ⁄Ê„….");
             }
 
             return source;
         }
 
-        private PaymentStatus MapMoyasarStatusToPaymentStatus(string moyasarStatus)
+        private PaymentStatus MapTapStatusToPaymentStatus(string tapStatus)
         {
-            return moyasarStatus.ToLower() switch
+            return tapStatus?.ToUpper() switch
             {
-                MoyasarPaymentStatus.Initiated => PaymentStatus.Initiated,
-                MoyasarPaymentStatus.Paid => PaymentStatus.Paid,
-                MoyasarPaymentStatus.Failed => PaymentStatus.Failed,
-                MoyasarPaymentStatus.Authorized => PaymentStatus.Authorized,
-                MoyasarPaymentStatus.Captured => PaymentStatus.Captured,
-                MoyasarPaymentStatus.Refunded => PaymentStatus.Refunded,
-                MoyasarPaymentStatus.Voided => PaymentStatus.Voided,
+                TapPaymentStatus.Initiated => PaymentStatus.Initiated,
+                TapPaymentStatus.InProgress => PaymentStatus.Pending,
+                TapPaymentStatus.Captured => PaymentStatus.Captured,
+                TapPaymentStatus.Failed => PaymentStatus.Failed,
+                TapPaymentStatus.Declined => PaymentStatus.Declined,
+                TapPaymentStatus.Cancelled => PaymentStatus.Cancelled,
+                TapPaymentStatus.Abandoned => PaymentStatus.Abandoned,
+                TapPaymentStatus.Void => PaymentStatus.Voided,
                 _ => PaymentStatus.Pending
             };
+        }
+
+        private (string firstName, string lastName) SplitName(string fullName)
+        {
+            if (string.IsNullOrWhiteSpace(fullName))
+                return ("Customer", "");
+
+            var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            
+            if (parts.Length == 0)
+                return ("Customer", "");
+            if (parts.Length == 1)
+                return (parts[0], "");
+            
+            return (parts[0], string.Join(" ", parts.Skip(1)));
+        }
+
+        private string CleanPhoneNumber(string phoneNumber)
+        {
+            // Remove all non-digit characters
+            var cleaned = new string(phoneNumber.Where(char.IsDigit).ToArray());
+            
+            // Remove leading zeros or country code
+            if (cleaned.StartsWith("966"))
+                cleaned = cleaned.Substring(3);
+            else if (cleaned.StartsWith("0"))
+                cleaned = cleaned.Substring(1);
+            
+            return cleaned;
         }
     }
 }

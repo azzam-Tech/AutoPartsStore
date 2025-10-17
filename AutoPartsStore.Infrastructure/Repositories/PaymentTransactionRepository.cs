@@ -22,7 +22,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     OrderNumber = pt.Order.OrderNumber,
                     UserId = pt.UserId,
                     UserName = pt.User.FullName,
-                    MoyasarPaymentId = pt.MoyasarPaymentId,
+                    TapChargeId = pt.TapChargeId,  // Updated from Moyasar
                     TransactionReference = pt.TransactionReference,
                     PaymentMethod = pt.PaymentMethod,
                     PaymentMethodText = pt.PaymentMethod.ToString(),
@@ -35,6 +35,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     ErrorCode = pt.ErrorCode,
                     CardLast4 = pt.CardLast4,
                     CardBrand = pt.CardBrand,
+                    CardScheme = pt.CardScheme,
                     RefundedAmount = pt.RefundedAmount,
                     RefundedDate = pt.RefundedDate,
                     RefundReason = pt.RefundReason,
@@ -45,10 +46,10 @@ namespace AutoPartsStore.Infrastructure.Repositories
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<PaymentTransactionDto?> GetByMoyasarPaymentIdAsync(string moyasarPaymentId)
+        public async Task<PaymentTransactionDto?> GetByTapChargeIdAsync(string tapChargeId)
         {
             return await _context.PaymentTransactions
-                .Where(pt => pt.MoyasarPaymentId == moyasarPaymentId)
+                .Where(pt => pt.TapChargeId == tapChargeId)
                 .Select(pt => new PaymentTransactionDto
                 {
                     Id = pt.Id,
@@ -56,7 +57,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     OrderNumber = pt.Order.OrderNumber,
                     UserId = pt.UserId,
                     UserName = pt.User.FullName,
-                    MoyasarPaymentId = pt.MoyasarPaymentId,
+                    TapChargeId = pt.TapChargeId,
                     TransactionReference = pt.TransactionReference,
                     PaymentMethod = pt.PaymentMethod,
                     PaymentMethodText = pt.PaymentMethod.ToString(),
@@ -69,6 +70,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     ErrorCode = pt.ErrorCode,
                     CardLast4 = pt.CardLast4,
                     CardBrand = pt.CardBrand,
+                    CardScheme = pt.CardScheme,
                     RefundedAmount = pt.RefundedAmount,
                     RefundedDate = pt.RefundedDate,
                     RefundReason = pt.RefundReason,
@@ -90,7 +92,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     OrderNumber = pt.Order.OrderNumber,
                     UserId = pt.UserId,
                     UserName = pt.User.FullName,
-                    MoyasarPaymentId = pt.MoyasarPaymentId,
+                    TapChargeId = pt.TapChargeId,
                     TransactionReference = pt.TransactionReference,
                     PaymentMethod = pt.PaymentMethod,
                     PaymentMethodText = pt.PaymentMethod.ToString(),
@@ -115,7 +117,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     OrderNumber = pt.Order.OrderNumber,
                     UserId = pt.UserId,
                     UserName = pt.User.FullName,
-                    MoyasarPaymentId = pt.MoyasarPaymentId,
+                    TapChargeId = pt.TapChargeId,
                     TransactionReference = pt.TransactionReference,
                     PaymentMethod = pt.PaymentMethod,
                     PaymentMethodText = pt.PaymentMethod.ToString(),
@@ -127,6 +129,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     ErrorMessage = pt.ErrorMessage,
                     CardLast4 = pt.CardLast4,
                     CardBrand = pt.CardBrand,
+                    CardScheme = pt.CardScheme,
                     RefundedAmount = pt.RefundedAmount,
                     RefundedDate = pt.RefundedDate,
                     InitiatedDate = pt.InitiatedDate,
@@ -172,7 +175,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     OrderNumber = pt.Order.OrderNumber,
                     UserId = pt.UserId,
                     UserName = pt.User.FullName,
-                    MoyasarPaymentId = pt.MoyasarPaymentId,
+                    TapChargeId = pt.TapChargeId,
                     TransactionReference = pt.TransactionReference,
                     PaymentMethod = pt.PaymentMethod,
                     PaymentMethodText = pt.PaymentMethod.ToString(),
@@ -182,6 +185,7 @@ namespace AutoPartsStore.Infrastructure.Repositories
                     Currency = pt.Currency,
                     CardLast4 = pt.CardLast4,
                     CardBrand = pt.CardBrand,
+                    CardScheme = pt.CardScheme,
                     InitiatedDate = pt.InitiatedDate,
                     CompletedDate = pt.CompletedDate,
                     FailedDate = pt.FailedDate

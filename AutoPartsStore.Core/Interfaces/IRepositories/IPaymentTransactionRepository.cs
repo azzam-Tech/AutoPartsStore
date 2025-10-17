@@ -7,7 +7,7 @@ namespace AutoPartsStore.Core.Interfaces.IRepositories
     public interface IPaymentTransactionRepository : IBaseRepository<PaymentTransaction>
     {
         Task<PaymentTransactionDto?> GetByIdWithDetailsAsync(int id);
-        Task<PaymentTransactionDto?> GetByMoyasarPaymentIdAsync(string moyasarPaymentId);
+        Task<PaymentTransactionDto?> GetByTapChargeIdAsync(string tapChargeId);  // Updated from Moyasar
         Task<PaymentTransactionDto?> GetByTransactionReferenceAsync(string reference);
         Task<PaymentTransactionDto?> GetByOrderIdAsync(int orderId);
         Task<PagedResult<PaymentTransactionDto>> GetFilteredTransactionsAsync(PaymentFilterRequest filter);

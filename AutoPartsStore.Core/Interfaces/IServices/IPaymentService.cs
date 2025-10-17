@@ -1,17 +1,17 @@
 using AutoPartsStore.Core.Models;
 using AutoPartsStore.Core.Models.Payments;
-using AutoPartsStore.Core.Models.Payments.Moyasar;
+using AutoPartsStore.Core.Models.Payments.Tap;
 
 namespace AutoPartsStore.Core.Interfaces.IServices
 {
     public interface IPaymentService
     {
-        // Payment initiation
-        Task<MoyasarPaymentResponse> InitiatePaymentAsync(InitiatePaymentRequest request);
+        // Payment initiation - Updated to return TapChargeResponse
+        Task<TapChargeResponse> InitiatePaymentAsync(InitiatePaymentRequest request);
         
-        // Payment processing
-        Task<PaymentTransactionDto> ProcessPaymentCallbackAsync(string paymentId);
-        Task<PaymentTransactionDto> VerifyPaymentAsync(string paymentId);
+        // Payment processing - Updated webhook method
+        Task<PaymentTransactionDto> ProcessPaymentWebhookAsync(string chargeId);
+        Task<PaymentTransactionDto> VerifyPaymentAsync(string chargeId);
         
         // Payment queries
         Task<PaymentTransactionDto?> GetPaymentByIdAsync(int id);

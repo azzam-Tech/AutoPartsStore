@@ -11,24 +11,39 @@ namespace AutoPartsStore.Core.Models.Payments
         [Required]
         public PaymentMethod PaymentMethod { get; set; }
         
-        // For credit card payments
-        public string? CardNumber { get; set; }
-        public string? CardHolderName { get; set; }
-        public string? ExpiryMonth { get; set; }
-        public string? ExpiryYear { get; set; }
-        public string? CVC { get; set; }  // Changed from CVV to CVC for consistency
+        // For card payments - Tap Token from Tap.js
+        // The frontend will tokenize the card using Tap.js and send the token
+        public string? TapToken { get; set; }  // Token from Tap.js (tok_xxxx)
         
         // For Apple Pay
-        public string? ApplePayToken { get; set; }  // ? NEW: Token from Apple Pay SDK
+        public string? ApplePayToken { get; set; }  // Token from Apple Pay SDK
         
-        // Callback URL for Moyasar
-        public string? CallbackUrl { get; set; }
+        // Customer information (required by Tap)
+        [Required]
+        public string FirstName { get; set; } = null!;
+        
+        public string? MiddleName { get; set; }
+        
+        [Required]
+        public string LastName { get; set; } = null!;
+        
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = null!;
+        
+        [Required]
+        [Phone]
+        public string PhoneNumber { get; set; } = null!;
+        
+        // Callback URLs
+        public string? RedirectUrl { get; set; }
+        public string? WebhookUrl { get; set; }
     }
 
-    public class ProcessPaymentCallbackRequest
+    public class ProcessPaymentWebhookRequest
     {
         [Required]
-        public string PaymentId { get; set; } = null!;
+        public string ChargeId { get; set; } = null!;
         
         public string? Status { get; set; }
         public string? Message { get; set; }

@@ -10,7 +10,7 @@ namespace AutoPartsStore.Core.Models.Payments
         public int UserId { get; set; }
         public string UserName { get; set; } = null!;
         
-        public string? MoyasarPaymentId { get; set; }
+        public string? TapChargeId { get; set; }  // Updated from Moyasar
         public string TransactionReference { get; set; } = null!;
         
         public PaymentMethod PaymentMethod { get; set; }
@@ -27,6 +27,7 @@ namespace AutoPartsStore.Core.Models.Payments
         
         public string? CardLast4 { get; set; }
         public string? CardBrand { get; set; }
+        public string? CardScheme { get; set; }  // New: Card scheme (Visa, MasterCard, Mada)
         
         public decimal? RefundedAmount { get; set; }
         public DateTime? RefundedDate { get; set; }

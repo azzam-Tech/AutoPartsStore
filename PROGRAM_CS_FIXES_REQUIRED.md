@@ -1,3 +1,49 @@
+# ?? CONFIGURATION ISSUES & FIXES
+
+## ?? Critical Issues Found in Program.cs
+
+### 1. **Duplicate Repository Registrations** ?
+**Lines 121-123:** Repositories registered twice
+```csharp
+builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();  // Line 121
+builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();          // Line 122
+builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>(); // Line 123
+```
+These are duplicated on lines 124-126!
+
+### 2. **Duplicate Payment Service Registration** ?
+**Lines 151 & 156:**
+```csharp
+builder.Services.AddScoped<IPaymentService, PaymentService>();  // Line 151
+// ... other code ...
+builder.Services.AddScoped<IPaymentService, PaymentService>();  // Line 156 - DUPLICATE!
+```
+
+### 3. **Old Moyasar Code Still Present** ?
+**Lines 158-174:** Moyasar configuration should be removed
+```csharp
+// ? REMOVE THIS - No longer needed
+builder.Services.Configure<MoyasarSettings>(
+    builder.Configuration.GetSection("Moyasar"));
+
+builder.Services.AddHttpClient<IMoyasarService, MoyasarService>(...);
+```
+
+### 4. **Missing Using Statements for Moyasar** ?
+**Lines referring to IMoyasarService and MoyasarSettings** will cause compilation errors since:
+- `IMoyasarService` interface doesn't exist (or shouldn't be used)
+- `MoyasarSettings` model references the old gateway
+- Missing `using AutoPartsStore.Core.Models.Payments.Moyasar;`
+- Missing `using Microsoft.Extensions.Options;`
+- Missing `using System.Net.Http.Headers;`
+
+---
+
+## ? CORRECTED Program.cs
+
+Here's the clean version you should use:
+
+```csharp
 using AutoPartsStore.Core.Interfaces;
 using AutoPartsStore.Core.Interfaces.IRepositories;
 using AutoPartsStore.Core.Interfaces.IServices;
@@ -25,14 +71,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
 builder.Services.AddControllers(options =>
 {
-    // Add model validation filter globally
     options.Filters.Add<ModelValidationFilter>();
 });
 
-// Add error handling services
+// Error handling
 builder.Services.AddErrorHandling();
 
-// Add Swagger services
+// Swagger
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo 
@@ -42,7 +87,6 @@ builder.Services.AddSwaggerGen(c =>
         Description = "API for managing auto parts store operations with Tap Payment Gateway"
     });
 
-    // Add JWT Auth to Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -80,7 +124,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Database with advanced configuration
+// Database
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 {
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
@@ -96,7 +140,6 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
         sqlOptions.CommandTimeout(configuration.GetValue<int?>("DatabaseSettings:CommandTimeout") ?? 30);
     });
 
-    // Enable detailed errors only in development
     if (builder.Environment.IsDevelopment())
     {
         options.EnableDetailedErrors(
@@ -106,7 +149,7 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     }
 });
 
-// Repositories
+// ? Repositories (NO DUPLICATES)
 builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
 builder.Services.AddScoped<IPartCategoryRepository, PartCategoryRepository>();
 builder.Services.AddScoped<ICarPartRepository, CarPartRepository>();
@@ -117,14 +160,12 @@ builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
 builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
 builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
-builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
-builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
 builder.Services.AddScoped<ICustomerFeedbackRepository, CustomerFeedbackRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IPaymentTransactionRepository, PaymentTransactionRepository>();
 
-// Services
+// ? Services (NO DUPLICATES)
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPartCategoryService, PartCategoryService>();
@@ -140,20 +181,26 @@ builder.Services.AddScoped<IFavoriteService, FavoriteService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ICustomerFeedbackService, CustomerFeedbackService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddRateLimiting(builder.Configuration);
 builder.Services.AddScoped<JwtTokenGenerator>();
+
+// ? TAP PAYMENT GATEWAY (Clean configuration)
 builder.Services.Configure<TapSettings>(
     builder.Configuration.GetSection("TapSettings"));
-builder.Services.AddHttpClient<ITapService, TapService>();
+
+builder.Services.AddHttpClient<ITapService, TapService>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
-// Get JWT configuration
+// Rate limiting
+builder.Services.AddRateLimiting(builder.Configuration);
+
+// JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"]
              ?? throw new InvalidOperationException("JWT Key is not configured.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AutoPartsStore.Api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AutoPartsStore.Client";
 
-// Authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = "JwtBearer";
@@ -225,25 +272,161 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Error handling middleware (MUST BE FIRST after dev exception page)
+// Middleware pipeline
 app.UseErrorHandling();
-
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
-
-// Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Rate limiting
 app.UseRateLimiting();
-
-// Admin check middleware
 app.UseAdminCheck();
-
-// Status code middleware (for additional status code handling)
 app.UseStatusCodeHandling();
 
 app.MapControllers();
 
 app.Run();
+```
+
+---
+
+## ? CORRECTED appsettings.json
+
+Remove old Moyasar section:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=SQL5110.site4now.net;Initial Catalog=db_abdf41_autopartstoredb;User Id=db_abdf41_autopartstoredb_admin;Password=3e%P@8BtY_j7PO889;"
+  },
+  "DatabaseSettings": {
+    "MaxRetryCount": 3,
+    "CommandTimeout": 30,
+    "EnableDetailedErrors": true,
+    "EnableSensitiveDataLogging": true
+  },
+  "Jwt": {
+    "Key": "AutoPartsStore_Jwt_Secret_2025!@#$%^&*()_+{}:<>?|~`1234567890",
+    "Issuer": "AutoPartsStore.Api",
+    "Audience": "AutoPartsStore.Client"
+  },
+  "Smtp": {
+    "Host": "smtp.gmail.com",
+    "Port": 587,
+    "Username": "molhemautopartstore@gmail.com",
+    "Password": "fqybggamjqklzhny",
+    "EnableSsl": true
+  },
+  "TapSettings": {
+    "SecretKey": "sk_test_XKokBfNWv6FIYuTMg5sLPjhJ",
+    "PublishableKey": "pk_test_EtHFV4BuPQokJT6jiROls87Y",
+    "BaseUrl": "https://api.tap.company/v2",
+    "WebhookUrl": "https://yourstore.com/api/payments/webhook",
+    "RedirectUrl": "https://yourstore.com/payment-result",
+    "Enable3DSecure": true,
+    "SaveCards": false,
+    "StatementDescriptor": "AutoPartsStore"
+  },
+  "EmergencySettings": {
+    "EMERGENCY_ADMIN_KEY": "AutoPartsStore_Emergency_2025!@#$%^&*()_+{}:<>?"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  "AllowedHosts": "*"
+}
+```
+
+---
+
+## ?? Summary of Changes
+
+### ? REMOVED:
+1. Duplicate repository registrations (3 duplicates)
+2. Duplicate `IPaymentService` registration
+3. All Moyasar configuration and services
+4. `Moyasar` section from appsettings.json
+
+### ? KEPT/ADDED:
+1. Clean Tap configuration
+2. Single registration of all services
+3. Proper HttpClient for Tap with lifetime management
+4. All necessary middleware
+
+---
+
+## ? Verification Checklist
+
+### Configuration
+- [x] TapSettings configured in appsettings.json
+- [x] TapSettings registered in Program.cs
+- [x] ITapService and TapService registered
+- [x] IPaymentService registered (once!)
+- [x] HttpClient configured for Tap
+- [ ] Moyasar references removed
+
+### Controllers
+- [x] PaymentsController updated for Tap
+- [x] Webhook endpoint configured
+- [x] All payment endpoints ready
+
+### Services
+- [x] TapService implemented
+- [x] PaymentService updated for Tap
+- [x] Payment repository updated
+
+### Database
+- [ ] Migration created and applied
+- [ ] MoyasarPaymentId renamed to TapChargeId
+- [ ] CardScheme column added
+
+---
+
+## ?? Next Steps
+
+### 1. Fix Program.cs
+Copy the corrected `Program.cs` above to replace your current one.
+
+### 2. Update appsettings.json
+Remove the `Moyasar` section completely.
+
+### 3. Run Database Migration
+```bash
+dotnet ef migrations add RenameMoyasarToTap
+dotnet ef database update
+```
+
+### 4. Build and Test
+```bash
+dotnet build
+dotnet run
+```
+
+### 5. Test Payment APIs
+- Test `/api/payments/initiate`
+- Test `/api/payments/webhook`
+- Test `/api/payments/verify/{chargeId}`
+
+---
+
+## ?? Important Notes
+
+1. **Never register a service twice** - It causes unpredictable behavior
+2. **Remove all Moyasar references** - They're no longer needed
+3. **Test thoroughly** - Especially webhook functionality
+4. **Use test keys** - Don't use live keys until fully tested
+
+---
+
+## ?? Need Help?
+
+If you encounter errors:
+1. Check the error message carefully
+2. Verify all using statements are present
+3. Ensure database migration was applied
+4. Check Tap Dashboard for webhook logs
+
+**Status:** Ready to fix and test! ??

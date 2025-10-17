@@ -11,10 +11,10 @@ namespace AutoPartsStore.Infrastructure.Configuration
             builder.ToTable("PaymentTransactions");
             builder.HasKey(pt => pt.Id);
 
-            builder.Property(pt => pt.MoyasarPaymentId)
+            builder.Property(pt => pt.TapChargeId)  // Updated from MoyasarPaymentId
                 .HasMaxLength(100);
 
-            builder.HasIndex(pt => pt.MoyasarPaymentId);
+            builder.HasIndex(pt => pt.TapChargeId);  // Updated from MoyasarPaymentId
 
             builder.Property(pt => pt.TransactionReference)
                 .IsRequired()
@@ -54,6 +54,9 @@ namespace AutoPartsStore.Infrastructure.Configuration
                 .HasMaxLength(4);
 
             builder.Property(pt => pt.CardBrand)
+                .HasMaxLength(50);
+
+            builder.Property(pt => pt.CardScheme)  // New property
                 .HasMaxLength(50);
 
             builder.Property(pt => pt.RefundedAmount)
