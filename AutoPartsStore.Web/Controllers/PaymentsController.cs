@@ -1,8 +1,11 @@
 using AutoPartsStore.Core.Interfaces.IServices;
 using AutoPartsStore.Core.Models.Payments;
+using AutoPartsStore.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using AutoPartsStore.Core.Models.Payments.Tap;
 
 namespace AutoPartsStore.Web.Controllers
 {
@@ -12,13 +15,19 @@ namespace AutoPartsStore.Web.Controllers
     {
         private readonly IPaymentService _paymentService;
         private readonly ILogger<PaymentsController> _logger;
+        private readonly TapWebhookValidator _webhookValidator;
+        private readonly TapSettings _tapSettings;
 
         public PaymentsController(
             IPaymentService paymentService,
-            ILogger<PaymentsController> logger)
+            ILogger<PaymentsController> logger,
+            TapWebhookValidator webhookValidator,
+            IOptions<TapSettings> tapSettings)
         {
             _paymentService = paymentService;
             _logger = logger;
+            _webhookValidator = webhookValidator;
+            _tapSettings = tapSettings.Value;
         }
 
         /// <summary>
@@ -44,30 +53,107 @@ namespace AutoPartsStore.Web.Controllers
         }
 
         /// <summary>
-        /// Tap payment webhook endpoint
+        /// ? WEBHOOK: Tap payment webhook endpoint (Steps 8-9)
         /// This endpoint receives notifications from Tap when payment status changes
+        /// IMPORTANT: Validates webhook signature (hashstring) for security
+        /// Reference: https://developers.tap.company/docs/webhook
         /// </summary>
         [HttpPost("webhook")]
-        [AllowAnonymous] // Tap needs to access this without authentication
-        public async Task<IActionResult> PaymentWebhook([FromBody] ProcessPaymentWebhookRequest request)
+        [AllowAnonymous] // ? Tap needs to access this without authentication
+        public async Task<IActionResult> TapWebhook()
         {
-            _logger.LogInformation("Received payment webhook for charge {ChargeId}", request.ChargeId);
-
             try
             {
-                var payment = await _paymentService.ProcessPaymentWebhookAsync(request.ChargeId);
-                
-                return Success(payment, " „ „⁄«·Ã… ≈‘⁄«— «·œ›⁄ »‰Ã«Õ.");
+                // Step 1: Get hashstring from header
+                var receivedHash = Request.Headers["hashstring"].FirstOrDefault();
+                if (string.IsNullOrEmpty(receivedHash))
+                {
+                    _logger.LogWarning("Webhook received without hashstring header");
+                    return Unauthorized(new
+                    {
+                        success = false,
+                        message = "Missing hashstring header"
+                    });
+                }
+
+                // Step 2: Read raw JSON body
+                string jsonPayload;
+                using (var reader = new StreamReader(Request.Body))
+                {
+                    jsonPayload = await reader.ReadToEndAsync();
+                }
+
+                if (string.IsNullOrEmpty(jsonPayload))
+                {
+                    _logger.LogWarning("Webhook received with empty body");
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Empty payload"
+                    });
+                }
+
+                // Step 3: Validate signature (HMAC-SHA256)
+                var isValid = _webhookValidator.ValidateFromJson(
+                    jsonPayload,
+                    receivedHash,
+                    _tapSettings.SecretKey);
+
+                if (!isValid)
+                {
+                    _logger.LogWarning("Webhook signature validation failed. Hash: {Hash}", receivedHash);
+                    return Unauthorized(new
+                    {
+                        success = false,
+                        message = "Invalid signature"
+                    });
+                }
+
+                // Step 4: Parse payload
+                var payload = System.Text.Json.JsonSerializer.Deserialize<TapWebhookPayload>(jsonPayload);
+                if (payload == null)
+                {
+                    _logger.LogError("Failed to deserialize webhook payload");
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Invalid payload format"
+                    });
+                }
+
+                _logger.LogInformation(
+                    "? Webhook signature validated. ChargeId: {ChargeId}, Status: {Status}",
+                    payload.Id, payload.Status);
+
+                // Step 5: Process the webhook
+                var payment = await _paymentService.ProcessTapWebhookAsync(payload);
+
+                _logger.LogInformation(
+                    "Webhook processed successfully. Order: {OrderNumber}, Status: {Status}",
+                    payment.OrderNumber, payment.Status);
+
+                // ? IMPORTANT: Always return 200 OK to Tap (even on success)
+                // This prevents Tap from retrying the webhook
+                return Ok(new
+                {
+                    success = true,
+                    message = " „ «” ·«„ «·≈‘⁄«— Ê„⁄«·Ã Â »‰Ã«Õ",
+                    chargeId = payload.Id,
+                    orderId = payment.OrderId,
+                    orderNumber = payment.OrderNumber,
+                    status = payment.Status
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing payment webhook for {ChargeId}", request.ChargeId);
-                
-                // Return 200 OK even on error to prevent Tap from retrying
+                _logger.LogError(ex, "Error processing Tap webhook");
+
+                // ? IMPORTANT: Return 200 OK even on error
+                // Log the error but don't let Tap retry
                 return Ok(new
                 {
                     success = false,
-                    message = " „ «” ·«„ «·≈‘⁄«— ·ﬂ‰ ÕœÀ Œÿ√ ›Ì «·„⁄«·Ã….",
+                    message = " „ «” ·«„ «·≈‘⁄«— ·ﬂ‰ ÕœÀ Œÿ√ ›Ì «·„⁄«·Ã…",
                     error = ex.Message
                 });
             }

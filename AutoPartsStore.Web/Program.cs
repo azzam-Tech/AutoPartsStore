@@ -142,10 +142,16 @@ builder.Services.AddScoped<ICustomerFeedbackService, CustomerFeedbackService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddRateLimiting(builder.Configuration);
 builder.Services.AddScoped<JwtTokenGenerator>();
+
+// ? Tap Payment Gateway Configuration
 builder.Services.Configure<TapSettings>(
     builder.Configuration.GetSection("TapSettings"));
 builder.Services.AddHttpClient<ITapService, TapService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+
+// ? Tap Webhook Validator (for security)
+builder.Services.AddScoped<TapWebhookValidator>();
+
 
 // Get JWT configuration
 var jwtKey = builder.Configuration["Jwt:Key"]

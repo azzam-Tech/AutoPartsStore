@@ -1,0 +1,628 @@
+// === FILE: WebAPI/appsettings.json ===
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=...;Database=...;User Id=...;Password=...;"
+  },
+  "Jwt": {
+    "Key": "YOUR_SECRET_JWT_KEY_HERE",
+    "Issuer": "https://YOUR_API_DOMAIN.COM",
+    "Audience": "https://YOUR_FRONTEND_DOMAIN.COM"
+  },
+  "TapPayments": {
+    "SecretKey": "sk_test_YOUR_TAP_SECRET_KEY",
+    "BaseUrl": "https://api.tap.company/v2/",
+    "RedirectUrl": "https://YOUR_FRONTEND_DOMAIN.COM/payment/success",
+    "PostUrl": "https://YOUR_API_DOMAIN.COM/api/payment/webhook"
+  }
+}
+// ===================================
+
+
+// === FILE: Core/Entities/Order.cs ===
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Core.Entities
+{
+    public enum OrderStatus
+    {
+        Pending,
+        Paid,
+        Failed,
+        Cancelled
+    }
+
+    public class Order
+    {
+        public int Id { get; set; }
+        public string UserId { get; set; } // √Ê Guid Õ”» ‰Ÿ«„ «·„” Œœ„Ì‰ ·œÌﬂ
+        
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalAmount { get; set; }
+        
+        public OrderStatus Status { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // „⁄—› ⁄„·Ì… «·œ›⁄ „‰ Tap
+        public string? PaymentChargeId { get; set; } 
+
+        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+        
+        // Ì„ﬂ‰ﬂ ≈÷«›… ⁄·«ﬁ… „⁄ «·„” Œœ„ (ApplicationUser)
+        // public ApplicationUser User { get; set; }
+    }
+}
+// ===================================
+
+
+// === FILE: Core/Entities/OrderItem.cs ===
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Core.Entities
+{
+    public class OrderItem
+    {
+        public int Id { get; set; }
+        public int OrderId { get; set; }
+        public Order Order { get; set; }
+
+        public int ProductId { get; set; } // „⁄—› «·„‰ Ã
+        public int Quantity { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Price { get; set; } // «·”⁄— Êﬁ  «·‘—«¡ („Â„)
+        
+        // Ì„ﬂ‰ﬂ ≈÷«›… ⁄·«ﬁ… „⁄ «·„‰ Ã (Product)
+        // public Product Product { get; set; }
+    }
+}
+// ===================================
+
+
+// === FILE: Core/DTOs/CheckoutRequestDto.cs ===
+namespace Core.DTOs
+{
+    // Â–« „À«· »”Ìÿ° Ì„ﬂ‰ﬂ «·«ﬂ ›«¡ »Ã·» «·”·… „‰ «·”Ì—›—
+    public class CheckoutRequestDto
+    {
+        public List<CartItemDto> CartItems { get; set; }
+    }
+
+    public class CartItemDto
+    {
+        public int ProductId { get; set; }
+        public int Quantity { get; set; }
+    }
+}
+// ===================================
+
+
+// === FILE: Core/DTOs/TapPaymentRequestDto.cs ===
+using System.Text.Json.Serialization;
+
+namespace Core.DTOs.Tap
+{
+    // DTOs ·≈‰‘«¡ ÿ·» «·œ›⁄ ·‹ Tap
+    public class TapPaymentRequestDto
+    {
+        [JsonPropertyName("amount")]
+        public decimal Amount { get; set; }
+
+        [JsonPropertyName("currency")]
+        public string Currency { get; set; } = "SAR";
+
+        [JsonPropertyName("customer_initiated")]
+        public bool CustomerInitiated { get; set; } = true;
+
+        [JsonPropertyName("threeDSecure")]
+        public bool ThreeDSecure { get; set; } = true;
+
+        [JsonPropertyName("save_card")]
+        public bool SaveCard { get; set; } = false;
+
+        [JsonPropertyName("description")]
+        public string Description { get; set; }
+
+        [JsonPropertyName("receipt")]
+        public Receipt Receipt { get; set; } = new Receipt { Email = false, Sms = false };
+
+        [JsonPropertyName("reference")]
+        public Reference Reference { get; set; }
+
+        [JsonPropertyName("customer")]
+        public Customer Customer { get; set; } // »Ì«‰«  «·⁄„Ì·
+
+        [JsonPropertyName("source")]
+        public Source Source { get; set; } = new Source { Id = "src_all" }; // ·ﬁ»Ê· ﬂ· «·ÿ—ﬁ
+
+        [JsonPropertyName("post")]
+        public Post Post { get; set; } // Webhook URL
+
+        [JsonPropertyName("redirect")]
+        public Redirect Redirect { get; set; } // Redirect URL
+    }
+
+    public class Receipt
+    {
+        [JsonPropertyName("email")]
+        public bool Email { get; set; }
+        [JsonPropertyName("sms")]
+        public bool Sms { get; set; }
+    }
+
+    public class Reference
+    {
+        [JsonPropertyName("order")]
+        public string Order { get; set; } // ”‰÷⁄ Â‰« —ﬁ„ «·ÿ·» (Order ID)
+    }
+
+    public class Customer
+    {
+        [JsonPropertyName("first_name")]
+        public string FirstName { get; set; }
+        // Ì„ﬂ‰ﬂ ≈÷«›… Email, Phone, etc.
+    }
+
+    public class Source
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+    }
+
+    public class Post
+    {
+        [JsonPropertyName("url")]
+        public string Url { get; set; }
+    }
+
+    public class Redirect
+    {
+        [JsonPropertyName("url")]
+        public string Url { get; set; }
+    }
+}
+// ===================================
+
+
+// === FILE: Core/DTOs/TapPaymentResponseDto.cs ===
+using System.Text.Json.Serialization;
+
+namespace Core.DTOs.Tap
+{
+    public class TapPaymentResponseDto
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } // Â–« ÂÊ Charge ID
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; }
+
+        [JsonPropertyName("transaction")]
+        public TransactionDetails Transaction { get; set; }
+    }
+
+    public class TransactionDetails
+    {
+        [JsonPropertyName("url")]
+        public string Url { get; set; } // Â–« ÂÊ —«»ÿ «·œ›⁄
+    }
+}
+// ===================================
+
+
+// === FILE: Core/DTOs/TapWebhookDto.cs ===
+using System.Text.Json.Serialization;
+
+namespace Core.DTOs.Tap
+{
+    // DTO ·‹ Webhook
+    public class TapWebhookDto
+    {
+        [JsonPropertyName("id")]
+        public string ChargeId { get; set; } // „⁄—› ⁄„·Ì… «·œ›⁄
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; } // "CAPTURED", "FAILED", etc.
+
+        [JsonPropertyName("reference")]
+        public Reference Reference { get; set; } // ÌÕ ÊÌ ⁄·Ï Order ID
+    }
+}
+// ===================================
+
+
+// === FILE: Core/Interfaces/IPaymentService.cs ===
+using Core.DTOs;
+using Core.DTOs.Tap;
+
+namespace Core.Interfaces
+{
+    public interface IPaymentService
+    {
+        // ”Ì⁄Ìœ Â–« «·—«»ÿ «·–Ì ”Ì–Â» ≈·ÌÂ «·⁄„Ì·
+        Task<string> InitiatePaymentAsync(CheckoutRequestDto checkoutDto, string userId, string customerName);
+        
+        // ·„⁄«·Ã… «·—œ «·ﬁ«œ„ „‰ Tap
+        Task<bool> HandleWebhookAsync(TapWebhookDto webhookDto);
+    }
+}
+// ===================================
+
+
+// === FILE: Core/Interfaces/IOrderRepository.cs ===
+using Core.Entities;
+
+namespace Core.Interfaces
+{
+    public interface IOrderRepository
+    {
+        Task AddAsync(Order order);
+        Task<Order> GetByIdAsync(int orderId);
+        void Update(Order order);
+        // ...
+    }
+}
+// ===================================
+
+
+// === FILE: Core/Interfaces/IUnitOfWork.cs ===
+namespace Core.Interfaces
+{
+    // «› —÷ √‰ ·œÌﬂ IProductRepository √Ì÷«
+    public interface IProductRepository 
+    {
+        Task<Product> GetByIdAsync(int id); // Product ÂÊ Entity ··„‰ Ã
+    }
+
+    // „À«· ·‹ Entity «·„‰ Ã (·· Ê÷ÌÕ ›ﬁÿ)
+    public class Product 
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+    }
+
+    public interface IUnitOfWork : IDisposable
+    {
+        IOrderRepository OrderRepository { get; }
+        IProductRepository ProductRepository { get; }
+        
+        Task<int> CompleteAsync();
+    }
+}
+// ===================================
+
+
+// === FILE: Infrastructure/Data/AppDbContext.cs (Snippet) ===
+using Core.Entities;
+using Microsoft.EntityFrameworkCore;
+// ... (√÷› using ·‰Ÿ«„ «·„” Œœ„Ì‰ ≈–« ﬂ‰   ” Œœ„ Identity)
+
+namespace Infrastructure.Data
+{
+    public class AppDbContext : DbContext // √Ê IdentityDbContext
+    {
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+        public DbSet<Product> Products { get; set; } // «› —÷ √‰ ·œÌﬂ ÃœÊ· „‰ Ã« 
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Order>()
+                .HasMany(o => o.OrderItems)
+                .WithOne(oi => oi.Order)
+                .HasForeignKey(oi => oi.OrderId);
+            
+            // ... »ﬁÌ… ≈⁄œ«œ«  «·‹ Model
+        }
+    }
+}
+// ===================================
+
+
+// === FILE: Infrastructure/Services/PaymentService.cs ===
+using Core.DTOs;
+using Core.DTOs.Tap;
+using Core.Entities;
+using Core.Interfaces;
+using Microsoft.Extensions.Configuration;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
+
+namespace Infrastructure.Services
+{
+    public class PaymentService : IPaymentService
+    {
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _config;
+        private readonly IUnitOfWork _unitOfWork;
+        // «› —÷ √‰ ·œÌﬂ IProductRepository ·Ã·» «·√”⁄«—
+        private readonly IProductRepository _productRepository; 
+
+        private readonly string _tapBaseUrl;
+        private readonly string _secretKey;
+        private readonly string _redirectUrl;
+        private readonly string _postUrl; // Webhook
+
+        public PaymentService(
+            IHttpClientFactory httpClientFactory, 
+            IConfiguration config, 
+            IUnitOfWork unitOfWork
+            /* IProductRepository productRepository */ // ﬁ„ »≈·€«¡ «· ⁄·Ìﬁ ⁄‰œ ≈÷«› Â
+            )
+        {
+            _httpClientFactory = httpClientFactory;
+            _config = config;
+            _unitOfWork = unitOfWork;
+            _productRepository = _unitOfWork.ProductRepository; // «› —«÷ √‰Â Ã“¡ „‰ UoW
+
+            _tapBaseUrl = _config["TapPayments:BaseUrl"];
+            _secretKey = _config["TapPayments:SecretKey"];
+            _redirectUrl = _config["TapPayments:RedirectUrl"];
+            _postUrl = _config["TapPayments:PostUrl"];
+        }
+
+        public async Task<string> InitiatePaymentAsync(CheckoutRequestDto checkoutDto, string userId, string customerName)
+        {
+            // 1. Õ”«» «·„»·€ «·≈Ã„«·Ì («·√Â„: Ã·» «·√”⁄«— „‰ ﬁ«⁄œ… «·»Ì«‰« )
+            decimal totalAmount = 0;
+            var orderItems = new List<OrderItem>();
+
+            foreach (var item in checkoutDto.CartItems)
+            {
+                var product = await _productRepository.GetByIdAsync(item.ProductId);
+                if (product == null)
+                    throw new Exception($"Product with ID {item.ProductId} not found.");
+
+                totalAmount += product.Price * item.Quantity;
+                orderItems.Add(new OrderItem
+                {
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity,
+                    Price = product.Price // Õ›Ÿ «·”⁄— Êﬁ  «·‘—«¡
+                });
+            }
+
+            // 2. ≈‰‘«¡ ÿ·» (Order) »Õ«·… "Pending"
+            var order = new Order
+            {
+                UserId = userId,
+                TotalAmount = totalAmount,
+                Status = OrderStatus.Pending,
+                OrderItems = orderItems
+            };
+
+            await _unitOfWork.OrderRepository.AddAsync(order);
+            await _unitOfWork.CompleteAsync(); // Õ›Ÿ «·ÿ·» ··Õ’Ê· ⁄·Ï Order ID
+
+            // 3.  Õ÷Ì— ÿ·» «·œ›⁄ ·‹ Tap
+            var tapRequest = new TapPaymentRequestDto
+            {
+                Amount = order.TotalAmount,
+                Description = $"Order #{order.Id} for Auto Parts",
+                Reference = new Reference { Order = order.Id.ToString() }, // √Â„ ŒÿÊ…: —»ÿ «·œ›⁄ »«·ÿ·»
+                Customer = new Customer { FirstName = customerName },
+                Redirect = new Redirect { Url = _redirectUrl },
+                Post = new Post { Url = _postUrl }
+            };
+
+            // 4. ≈—”«· «·ÿ·» ·‹ Tap
+            var client = _httpClientFactory.CreateClient("Tap");
+            client.BaseAddress = new Uri(_tapBaseUrl);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _secretKey);
+
+            var response = await client.PostAsJsonAsync("charges", tapRequest);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                // Â‰« ÌÃ»  ”ÃÌ· «·Œÿ√ (Log)
+                throw new Exception($"Tap Payment failed: {errorContent}");
+            }
+
+            var tapResponse = await response.Content.ReadFromJsonAsync<TapPaymentResponseDto>();
+
+            // 5.  ÕœÌÀ «·ÿ·» (Order) »„⁄—› «·œ›⁄ „‰ Tap
+            order.PaymentChargeId = tapResponse.Id;
+            _unitOfWork.OrderRepository.Update(order);
+            await _unitOfWork.CompleteAsync();
+
+            // 6. ≈—Ã«⁄ —«»ÿ «·œ›⁄ ··‹ Frontend
+            return tapResponse.Transaction.Url;
+        }
+
+        public async Task<bool> HandleWebhookAsync(TapWebhookDto webhookDto)
+        {
+            // 1. «” Œ·«’ —ﬁ„ «·ÿ·» „‰ «·‹ Webhook
+            if (!int.TryParse(webhookDto.Reference.Order, out int orderId))
+            {
+                //  ”ÃÌ· Œÿ√ (Log)
+                return false;
+            }
+
+            var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId);
+            if (order == null)
+            {
+                //  ”ÃÌ· Œÿ√ (Log)
+                return false;
+            }
+            
+            //  Ã‰» „⁄«·Ã… «·ÿ·» ≈–«  „  „⁄«·Ã Â „”»ﬁ«
+            if(order.Status == OrderStatus.Paid) return true;
+
+            // 2. «· Õﬁﬁ „‰ Õ«·… «·œ›⁄
+            if (webhookDto.Status == "CAPTURED") // "CAPTURED"  ⁄‰Ì "„œ›Ê⁄ »‰Ã«Õ"
+            {
+                order.Status = OrderStatus.Paid;
+                
+                // Â‰« Ì„ﬂ‰ﬂ ≈÷«›… „‰ÿﬁ ≈÷«›Ì ( ›—Ì€ «·”·…° ≈—”«· ≈Ì„Ì· ··⁄„Ì·° ...)
+            }
+            else if (webhookDto.Status == "FAILED" || webhookDto.Status == "DECLINED")
+            {
+                order.Status = OrderStatus.Failed;
+            }
+            
+            _unitOfWork.OrderRepository.Update(order);
+            await _unitOfWork.CompleteAsync();
+
+            return true;
+        }
+    }
+}
+// ===================================
+
+
+// === FILE: WebAPI/Controllers/PaymentController.cs ===
+using Core.DTOs;
+using Core.DTOs.Tap;
+using Core.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+
+namespace WebAPI.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class PaymentController : ControllerBase
+    {
+        private readonly IPaymentService _paymentService;
+
+        public PaymentController(IPaymentService paymentService)
+        {
+            _paymentService = paymentService;
+        }
+
+        [Authorize] //  √ﬂœ √‰ «·„” Œœ„ „”Ã· œŒÊ·Â
+        [HttpPost("checkout")]
+        public async Task<IActionResult> CreatePayment([FromBody] CheckoutRequestDto checkoutDto)
+        {
+            try
+            {
+                // «” Œ·«’ »Ì«‰«  «·„” Œœ„ „‰ «·‹ JWT
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var customerName = User.FindFirstValue(ClaimTypes.Name) ?? "Guest"; // √Ê √Ì Claim ¬Œ—
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                var redirectUrl = await _paymentService.InitiatePaymentAsync(checkoutDto, userId, customerName);
+
+                // ≈—Ã«⁄ «·—«»ÿ ··‹ Frontend
+                return Ok(new { redirectUrl });
+            }
+            catch (Exception ex)
+            {
+                //  ”ÃÌ· «·Œÿ√ (Log)
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("webhook")]
+        [AllowAnonymous] // Â–« «·‹ Endpoint ÌÃ» √‰ ÌﬂÊ‰ „ «Õ« ·‹ Tap (»œÊ‰ JWT)
+        public async Task<IActionResult> TapWebhook([FromBody] TapWebhookDto webhookDto)
+        {
+            // „·«ÕŸ…: ·√„«‰ √⁄·Ï° ÌÃ» «· Õﬁﬁ „‰ „’œ— «·ÿ·» (Validate Signature)
+            // ·ﬂ‰ ··»œ«Ì…° ”‰ﬁ»· «·ÿ·» „»«‘—…
+
+            try 
+            {
+                 var success = await _paymentService.HandleWebhookAsync(webhookDto);
+
+                if (success)
+                {
+                    return Ok(); // ÌÃ» ≈—Ã«⁄ 200 OK ·‹ Tap
+                }
+
+                return BadRequest(); // ≈⁄·«„ Tap »ÕœÊÀ „‘ﬂ·…
+            }
+            catch(Exception ex)
+            {
+                //  ”ÃÌ· «·Œÿ√ (Log)
+                return StatusCode(500, "Internal server error");
+            }
+           
+        }
+    }
+}
+// ===================================
+
+
+// === FILE: WebAPI/Program.cs (Snippet) ===
+using Core.Interfaces;
+using Infrastructure.Data;
+using Infrastructure.Repositories; // «› —÷ √‰ ·œÌﬂ Â–« «·„”«—
+using Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
+// ... (√÷› using ·≈⁄œ«œ«  JWT Ê Identity)
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 1. ≈÷«›… Controllers
+builder.Services.AddControllers();
+
+// 2. ≈÷«›… DbContext
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// 3. ≈÷«›… HttpClientFactory („Â„ ·‹ PaymentService)
+builder.Services.AddHttpClient();
+
+// 4.  ”ÃÌ· «·Œœ„«  (Dependency Injection)
+// (√‰  »Õ«Ã… · ÿ»Ìﬁ Â–Â «·‹ Repositories Ê UoW »‰›”ﬂ)
+// builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+// builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+// builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+
+// 5. ≈÷«›… CORS („Â„ ·· Ê«’· „⁄ Next.js)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigin",
+        policy => policy.WithOrigins("https://YOUR_FRONTEND_DOMAIN.COM") // —«»ÿ „Êﬁ⁄ﬂ
+                        .AllowAnyHeader()
+                        .AllowAnyMethod());
+});
+
+// 6. ≈÷«›… «·„’«œﬁ… (Authentication) Ê (Authorization)
+// (Â‰« ÌÃ» ≈÷«›… ≈⁄œ«œ«  «·‹ JWT Ê Identity «·Œ«’… »ﬂ)
+// builder.Services.AddAuthentication(...);
+// builder.Services.AddAuthorization();
+
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+app.UseRouting(); // «·‹ Routing √Ê·«
+
+app.UseCors("AllowSpecificOrigin"); // À„ CORS
+
+app.UseAuthentication(); // À„ «·„’«œﬁ…
+app.UseAuthorization(); // À„ «·’·«ÕÌ« 
+
+app.MapControllers();
+
+app.Run();
+// ===================================
+// === END OF FILE ===

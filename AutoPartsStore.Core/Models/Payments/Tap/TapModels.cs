@@ -470,4 +470,54 @@ namespace AutoPartsStore.Core.Models.Payments.Tap
         [JsonPropertyName("description")]
         public string? Description { get; set; }
     }
+
+    /// <summary>
+    /// Tap webhook payload
+    /// This is what Tap sends to our webhook endpoint
+    /// </summary>
+    public class TapWebhookPayload
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = null!;  // Charge ID (chg_xxx)
+
+        [JsonPropertyName("object")]
+        public string Object { get; set; } = "charge";
+
+        [JsonPropertyName("live_mode")]
+        public bool LiveMode { get; set; }
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = null!;
+
+        [JsonPropertyName("amount")]
+        public decimal Amount { get; set; }
+
+        [JsonPropertyName("currency")]
+        public string Currency { get; set; } = null!;
+
+        // Additional fields Tap may send
+        [JsonPropertyName("reference")]
+        public TapWebhookReference? Reference { get; set; }
+
+        [JsonPropertyName("response")]
+        public TapWebhookResponse? Response { get; set; }
+    }
+
+    public class TapWebhookReference
+    {
+        [JsonPropertyName("transaction")]
+        public string? Transaction { get; set; }
+
+        [JsonPropertyName("order")]
+        public string? Order { get; set; }
+    }
+
+    public class TapWebhookResponse
+    {
+        [JsonPropertyName("code")]
+        public string? Code { get; set; }
+
+        [JsonPropertyName("message")]
+        public string? Message { get; set; }
+    }
 }

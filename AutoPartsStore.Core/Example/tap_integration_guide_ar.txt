@@ -1,0 +1,419 @@
+
+دليل تكامل Tap Payments (السعودية) — سلة قطع غيار السيارات
+=========================================================
+المكدس التقني: ASP.NET Core Web API (Repositories/Services, EF Core, JWT) + Next.js (Frontend)
+صيغة التكامل: Hosted/Redirect عبر Charges API مع Webhook آمن للتحقق النهائي
+
+ملخص سريع
+---------
+- طريقة الدمج: إنشاء Charge عبر POST ‎https://api.tap.company/v2/charges‎ ثم إعادة توجيه العميل إلى رابط الدفع الجاهز transaction.url.
+- التحقق النهائي: استلام Webhook (post.url) والتحقق من توقيعه (hashstring)، أو استعلام GET ‎/v2/charges/{tap_id}‎ بعد redirect.url.
+- طرق الدفع المستهدفة: مدى، Visa/Mastercard/Amex، Apple Pay، Tabby، STC Pay… (بحسب ما هو مُفعّل على حسابكم).
+- اختيار طريقة الدفع: مرروا source.id="src_all" لعرض كل الطرق المفعّلة في صفحة Tap، أو حدّدوا مصدراً بعينه مثل src_sa.mada أو src_apple_pay أو src_tabby.installement.
+- العملة في السعودية: SAR (مهم لمدى؛ مدى تدعم SAR فقط).
+
+المخطط المقترح (متوافق مع 10 خطواتكم)
+-------------------------------------
+1) العميل (Next.js): ينقر "الدفع".
+2) Frontend → Backend: يرسل CartId إلى ‎POST /api/payment/checkout‎.
+3) Backend:
+   - يتحقق من السلة ويحسب الإجمالي (SAR).
+   - يطلب POST ‎/v2/charges‎ بهيكل يدعم: amount, currency, source.id, post.url, redirect.url, threeDSecure, customer_initiated, reference (transaction/order/**idempotent**).
+   - Authorization: Bearer sk_... (Secret Key).
+4) Tap → Backend: JSON يحوي transaction.url (وغالباً status=INITIATED).
+5) Backend → Frontend: يعيد transactionUrl.
+6) Frontend: يعيد توجيه العميل إلى transactionUrl.
+7) العميل: يُدخل بيانات الدفع في صفحة Tap الجاهزة.
+8) Tap (خلفية): تُرسل Webhook إلى post.url مع ترويسات hash/hashstring للتحقق.
+9) Backend (Webhook): يتحقق من **hashstring**، ثم عند CAPTURED ينشئ Order ويفرّغ السلة.
+10) Tap: تُرجع العميل إلى redirect.url ويصل tap_id؛ اعرضوا النتيجة بعد التحقق عبر GET ‎/v2/charges/{tap_id}‎.
+
+أمثلة عملية — الأكواد
+=====================
+
+(A) نموذج Payload لإنشاء Charge
+-------------------------------
+> استبدلوا جميع القيم المؤقتة (المفاتيح/الدومينات/البيانات).
+
+```json
+{
+  "amount": 249.50,
+  "currency": "SAR",
+  "threeDSecure": true,
+  "customer_initiated": true,
+  "description": "Order #ORD-100245",
+  "metadata": { "cart_id": "CART-abc123" },
+  "reference": {
+    "transaction": "TXN-100245",
+    "order": "ORD-100245",
+    "idempotent": "TXN-100245"
+  },
+  "customer": {
+    "first_name": "Ahmed",
+    "last_name": "Saleh",
+    "email": "ahmed@example.com",
+    "phone": { "country_code": "966", "number": "5XXXXXXXX" }
+  },
+  "source": { "id": "src_all" },
+  "post":    { "url": "https://api.yourdomain.com/api/payment/webhook" },
+  "redirect":{ "url": "https://yourdomain.com/checkout/result" }
+}
+```
+
+- `src_all`: يعرض كل الطرق المفعّلة في صفحة Tap المستضافة.
+- بدائل: `src_sa.mada` (مدى)، `src_card` (بطاقات فقط)، `src_apple_pay`، `src_tabby.installement` (تابي).
+- عند نجاح الطلب ستحصلون على `transaction.url` لإعادة توجيه العميل.
+
+(B) ASP.NET Core — نقطة إنشاء عملية الدفع (Checkout)
+-----------------------------------------------------
+
+### 1) إعداد الإعدادات والخدمات
+
+**appsettings.json** (مقتطف):
+```json
+{
+  "Tap": {
+    "SecretKey": "sk_test_XXXX...",
+    "RedirectUrl": "https://yourdomain.com/checkout/result",
+    "WebhookUrl":  "https://api.yourdomain.com/api/payment/webhook"
+  }
+}
+```
+
+**TapOptions.cs**
+```csharp
+public class TapOptions
+{
+    public string SecretKey { get; set; } = "";
+    public string RedirectUrl { get; set; } = "";
+    public string WebhookUrl { get; set; } = "";
+}
+```
+
+**Program.cs** (أو Startup):
+```csharp
+builder.Services.Configure<TapOptions>(builder.Configuration.GetSection("Tap"));
+builder.Services.AddHttpClient();
+```
+
+### 2) DTO بسيط لطلب الـ Checkout
+```csharp
+public sealed class CheckoutRequest
+{
+    public string CartId { get; set; } = default!;
+}
+```
+
+### 3) PaymentController — إنشاء Charge وإرجاع transaction.url
+> يعتمد هذا المقتطف على EF/Services الخاصة بكم للتحقق من السلة وحساب الإجمالي.
+
+```csharp
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+
+[ApiController]
+[Route("api/[controller]")]
+public class PaymentController : ControllerBase
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly TapOptions _tap;
+    private readonly ICartService _cartService;
+    private readonly IPaymentRepository _paymentRepo;
+
+    public PaymentController(
+        IHttpClientFactory httpClientFactory,
+        IOptions<TapOptions> tapOptions,
+        ICartService cartService,
+        IPaymentRepository paymentRepo)
+    {
+        _httpClientFactory = httpClientFactory;
+        _tap = tapOptions.Value;
+        _cartService = cartService;
+        _paymentRepo = paymentRepo;
+    }
+
+    [HttpPost("checkout")]
+    [Authorize] // إن كنتم تستخدمون JWT
+    public async Task<IActionResult> Checkout([FromBody] CheckoutRequest dto)
+    {
+        // 1) تحقق السلة واحسب الإجمالي
+        var cart = await _cartService.GetCartAsync(dto.CartId, User);
+        if (cart is null || cart.Items.Count == 0) return BadRequest("Cart is empty");
+
+        var amount = Math.Round(cart.Total, 2); // SAR: خانتان عشريتان
+        var orderNo = cart.OrderNumber;         // رقم داخلي للطلب
+        var txnRef  = $"TXN-{orderNo}";
+
+        // 2) بناء طلب Tap
+        var chargeReq = new
+        {
+            amount,
+            currency = "SAR",
+            threeDSecure = true,
+            customer_initiated = true,
+            description = $"Order #{orderNo}",
+            metadata = new { cart_id = cart.Id },
+            reference = new {
+                transaction = txnRef,
+                order = orderNo,
+                idempotent = txnRef // مهم لمنع التكرار (صلاحية 24 ساعة)
+            },
+            customer = new {
+                first_name = cart.CustomerFirstName,
+                last_name  = cart.CustomerLastName,
+                email      = cart.CustomerEmail,
+                phone      = new { country_code = "966", number = cart.CustomerPhone }
+            },
+            source = new { id = "src_all" },
+            post = new   { url = _tap.WebhookUrl },
+            redirect = new { url = _tap.RedirectUrl }
+        };
+
+        // 3) نداء Tap
+        using var http = _httpClientFactory.CreateClient();
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _tap.SecretKey);
+        var content = new StringContent(JsonSerializer.Serialize(chargeReq), Encoding.UTF8, "application/json");
+        var resp = await http.PostAsync("https://api.tap.company/v2/charges", content);
+        var body = await resp.Content.ReadAsStringAsync();
+        if (!resp.IsSuccessStatusCode) return StatusCode((int)resp.StatusCode, body);
+
+        // 4) استخرج transaction.url و id
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+        var txUrl = root.GetProperty("transaction").GetProperty("url").GetString();
+        var chargeId = root.GetProperty("id").GetString();
+
+        // 5) خزّن مقصداً محلياً (اختياري)
+        await _paymentRepo.SaveIntentAsync(cart.Id, chargeId!, amount, "SAR", txnRef);
+
+        return Ok(new { transactionUrl = txUrl });
+    }
+}
+```
+
+(C) ASP.NET Core — Webhook للتحقق وتثبيت الطلب
+---------------------------------------------
+> Tap تُرسل ترويسة **hashstring** (وأيضاً **hash**)؛ يجب حسابها محلياً (HMAC‑SHA256 باستخدام Secret Key) بمصفوفة محددة من الحقول حسب نوع الكيان (Charge/Authorize/Invoice)، ثم مقارنة الناتج بالترويسة.  
+> لعمليات **Charge** يتم تركيب النص المراد تجزئته على النحو:
+>
+> `x_id{charge.id}x_amount{amount}x_currency{currency}x_gateway_reference{reference.gateway}x_payment_reference{reference.payment}x_status{status}x_created{transaction.created}`
+>
+> ملاحظة: **amount** تُنسّق وفق عدد منازل العملة (SAR = 2).
+
+```csharp
+[ApiController]
+[Route("api/payment")]
+public class TapWebhookController : ControllerBase
+{
+    private readonly TapOptions _tap;
+    private readonly IOrdersService _ordersService;
+
+    public TapWebhookController(IOptions<TapOptions> tap, IOrdersService ordersService)
+    {
+        _tap = tap.Value;
+        _ordersService = ordersService;
+    }
+
+    [HttpPost("webhook")]
+    [AllowAnonymous] // يجب أن يكون متاحاً لـ Tap
+    public async Task<IActionResult> Webhook()
+    {
+        var postedHashString = Request.Headers["hashstring"].FirstOrDefault();
+        if (string.IsNullOrEmpty(postedHashString))
+            return Unauthorized("Missing hashstring header");
+
+        string raw;
+        using (var sr = new StreamReader(Request.Body))
+            raw = await sr.ReadToEndAsync();
+
+        using var doc = JsonDocument.Parse(raw);
+        var root = doc.RootElement;
+
+        // التقاط الحقول المطلوبة للحساب
+        var id       = root.GetProperty("id").GetString() ?? "";
+        var amount   = root.GetProperty("amount").GetDecimal(); // تنسيق لاحقاً
+        var currency = root.GetProperty("currency").GetString() ?? "";
+        var status   = root.GetProperty("status").GetString() ?? "";
+        var created  = root.GetProperty("transaction").GetProperty("created").GetRawText(); // رقم طويل (ms)
+
+        var gatewayRef = root.GetProperty("reference").GetProperty("gateway").GetString() ?? "";
+        var paymentRef = root.GetProperty("reference").GetProperty("payment").GetString() ?? "";
+
+        // صياغة amount بصيغة SAR (خانتان عشريتان) وبدون Locales عربية
+        var amountFormatted = amount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+
+        var toBeHashed =
+            $"x_id{id}" +
+            $"x_amount{amountFormatted}" +
+            $"x_currency{currency}" +
+            $"x_gateway_reference{gatewayRef}" +
+            $"x_payment_reference{paymentRef}" +
+            $"x_status{status}" +
+            $"x_created{created}"; // كما تُرسلها Tap (ms epoch)
+
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_tap.SecretKey));
+        var computed = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(toBeHashed))).ToLowerInvariant();
+
+        if (!computed.Equals(postedHashString, StringComparison.OrdinalIgnoreCase))
+            return Unauthorized("Invalid signature");
+
+        // آمن: ثبّت حالة الدفع
+        if (status.Equals("CAPTURED", StringComparison.OrdinalIgnoreCase))
+        {
+            await _ordersService.ConfirmPaidAsync(id, raw); // أنشئ Order وافرغ السلة وسجّل السجل المالي
+        }
+
+        return Ok();
+    }
+}
+```
+
+(D) ASP.NET Core — تأكيد بعد Redirect (قراءة tap_id)
+-----------------------------------------------------
+> بعد عودة العميل إلى redirect.url يصل **tap_id**، استعلموا عنه من خادمكم (Server‑to‑Server) وليس من المتصفح فقط.
+
+```csharp
+[ApiController]
+[Route("api/payment")]
+public class TapConfirmController : ControllerBase
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly TapOptions _tap;
+
+    public TapConfirmController(IHttpClientFactory httpClientFactory, IOptions<TapOptions> tap)
+    {
+        _httpClientFactory = httpClientFactory;
+        _tap = tap.Value;
+    }
+
+    [HttpGet("confirm")]
+    public async Task<IActionResult> Confirm([FromQuery] string tap_id)
+    {
+        if (string.IsNullOrWhiteSpace(tap_id)) return BadRequest("tap_id required");
+
+        using var http = _httpClientFactory.CreateClient();
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _tap.SecretKey);
+        var resp = await http.GetAsync($"https://api.tap.company/v2/charges/{tap_id}");
+        var body = await resp.Content.ReadAsStringAsync();
+
+        if (!resp.IsSuccessStatusCode)
+            return StatusCode((int)resp.StatusCode, body);
+
+        using var doc = JsonDocument.Parse(body);
+        var status = doc.RootElement.GetProperty("status").GetString();
+
+        // يمكن عرض نتيجة بشرية للعميل
+        return Ok(new { status });
+    }
+}
+```
+
+(E) Next.js — استدعاء الـ Checkout وإعادة التوجيه
+-----------------------------------------------
+> مثال مختصر (Client Component أو Handler).
+
+```ts
+// مثال داخل Action أو onClick handler
+async function handleCheckout(cartId: string) {
+  const res = await fetch('/api/payment/checkout', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ cartId }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  const { transactionUrl } = await res.json();
+  window.location.href = transactionUrl; // التحويل إلى صفحة Tap
+}
+```
+
+(F) Next.js — صفحة النتيجة (Redirect) + استعلام الخادم
+------------------------------------------------------
+> صفحة تعرض نتيجة مؤكّدة باستعلام خادمي إلى `/api/payment/confirm?tap_id=...`.
+
+```ts
+// app/checkout/result/page.tsx (مثال)
+import { notFound } from 'next/navigation';
+
+export default async function ResultPage({ searchParams }: { searchParams: { tap_id?: string } }) {
+  const tap_id = searchParams.tap_id;
+  if (!tap_id) return notFound();
+
+  const res = await fetch(`${process.env.API_BASE_URL}/api/payment/confirm?tap_id=${tap_id}`, {
+    cache: 'no-store',
+    headers: { 'accept': 'application/json' }
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    return <pre>Confirm error: {err}</pre>
+  }
+
+  const data = await res.json();
+  return <div>Payment status: <strong>{data.status}</strong></div>;
+}
+```
+
+(G) ملاحظات خاصة بطرق الدفع
+---------------------------
+- **Mada (مدى):** تعمل بعملة **SAR فقط**. يمكن تقييد الصفحة لمـدى عبر `src_sa.mada`، أو عرضها ضمن `src_all` إن كانت مفعّلة على حسابكم.
+- **Apple Pay (ويب):** يتطلب **تسجيل الدومين** لدى Tap ووضع ملف التحقق في
+  `/.well-known/apple-developer-merchantid-domain-association`، ثم استخدام **Apple Pay Web SDK** (React/Vanilla) أو الاكتفاء بصفحة Tap المستضافة (`src_apple_pay` أو `src_all`).
+- **Tabby (BNPL):** استخدموا `src_tabby.installement` مع **حد أدنى 10 SAR/AED أو 1 KWD** وتمرير **رقم جوال صحيح مع كود الدولة** ضمن بيانات العميل.
+
+(H) أفضل الممارسات
+------------------
+- استخدموا `reference.idempotent` (صلاحية 24 ساعة) لمنع التكرار (النقر المتكرر/إعادة المحاولة).
+- فعّلوا `threeDSecure: true` و`customer_initiated: true` لتدفقات Redirect.
+- لا تعتمدوا على الـ Redirect وحده للنجاح؛ اعتمدوا على Webhook الموقّع أو GET ‎/v2/charges/{tap_id}‎.
+- اختبروا بمفاتيح وبطاقات **Test**، ثم بدّلوا إلى **sk_live/pk_live** قبل الإطلاق، وتأكدوا أن post.url/redirect.url يتوجهان إلى بيئة الإنتاج.
+- Webhook يجب أن يكون HTTPS عام (لا يُقبل localhost)، وTap ستعيد المحاولة في حال فشل النشر.
+- نسّقوا amount وفق عملتكم (SAR = خانتان عشريتان).
+
+(I) جدول حدّ أدنى من الجداول المقترحة (EF Core مختصر جداً)
+----------------------------------------------------------
+- **Payments**: Id (PK), ChargeId, TrackRef, Amount, Currency, CartId, Status, CreatedAt, RawPayload (JSON), WebhookVerifiedAt (UTC).
+- **Orders**: Id (PK), OrderNumber, CustomerId, Amount, Currency, PaymentChargeId (FK إلى Payments.ChargeId), Status, CreatedAt.
+
+نصائح أمنية
+-----------
+- استعملوا **Secret Key** فقط في الخادم. لا تضعوه في المتصفح.
+- تحققوا من **hashstring** كما في الكود أعلاه قبل تغيير حالات الطلبات.
+- راقبوا حالات الاستجابة (`CAPTURED`, `FAILED`, `CANCELLED`, `TIMEDOUT`...) وتصرّفوا وفقها.
+- لا تحفظوا بيانات البطاقة لديكم؛ الصفحة المستضافة لدى Tap تتكفّل بها.
+
+قائمة تحقق (Checklist)
+----------------------
+- [ ] تفعيل مدى/Apple Pay/Tabby على حساب Tap.
+- [ ] إعداد مفاتيح الاختبار ثم مفاتيح الإنتاج (sk_live/pk_live).
+- [ ] تمرير `source.id` المناسب (`src_all` كبداية).
+- [ ] تمرير `post.url` و`redirect.url` الصحيحين.
+- [ ] استخدام `reference.idempotent` في كل إنشاء Charge.
+- [ ] التحقق من Webhook عبر `hashstring` (HMAC‑SHA256 + Secret Key).
+- [ ] إنشاء الطلب محلياً عند `CAPTURED` وتفريغ السلة.
+- [ ] تشغيل تجربة حيّة لكل وسيلة دفع قبل الإطلاق.
+
+مراجع رسمية (للمراجعة السريعة)
+-------------------------------
+- Create a Charge + Payment Source (`src_all`/`src_sa.mada`/`src_tabby.installement`) + transaction.url + statuses: https://developers.tap.company/reference/charges
+- Redirect Flow (redirect.url, tap_id, retrieve charge): https://developers.tap.company/docs/redirect
+- API Authentication (Bearer sk_*): https://developers.tap.company/reference/api-endpoint
+- Webhook (post.url, hash/hashstring والتحقق، وعدم دعم localhost + إعادة المحاولات): https://developers.tap.company/docs/webhook
+- Idempotency (`reference.idempotent`، صلاحية 24 ساعة): https://developers.tap.company/docs/idempotency
+- Mada (SAR فقط): https://developers.tap.company/docs/mada
+- Apple Pay Web SDK (تسجيل الدومين + ملف التحقق + React/Vanilla): https://developers.tap.company/docs/apple-pay-web-sdk
+- Tabby (src_tabby.installement + حد أدنى 10 SAR/AED أو 1 KWD + رقم جوال صحيح): https://developers.tap.company/docs/tabby
+- Test Keys & Test Cards: https://developers.tap.company/reference/testing-keys , https://developers.tap.company/reference/testing-cards
+
+ملاحظات ختامية
+--------------
+- غيّروا القيم الوهمية (الدومينات/المفاتيح/الأسماء) قبل التشغيل.
+- يمكنكم تقييد وسيلة الدفع حسب السيناريو (مثلاً Tabby لطلب منتجات فوق مبلغ معيّن) بتغيير `source.id` قبل إنشاء Charge.
+- يفضّل حفظ charge.id وreference.track في جدول Payments لتتبّع الحالة لاحقاً.

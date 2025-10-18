@@ -9,8 +9,9 @@ namespace AutoPartsStore.Core.Interfaces.IServices
         // Payment initiation - Updated to return TapChargeResponse
         Task<TapChargeResponse> InitiatePaymentAsync(InitiatePaymentRequest request);
         
-        // Payment processing - Updated webhook method
+        // Payment processing - Webhook methods
         Task<PaymentTransactionDto> ProcessPaymentWebhookAsync(string chargeId);
+        Task<PaymentTransactionDto> ProcessTapWebhookAsync(TapWebhookPayload payload); // ? Added
         Task<PaymentTransactionDto> VerifyPaymentAsync(string chargeId);
         
         // Payment queries
